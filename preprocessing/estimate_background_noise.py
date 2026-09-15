@@ -12,7 +12,7 @@ from dipy.io.image import load_nifti
 def main():
 
     data, affine = load_nifti(
-        "data/MGH-HCP/raw/dwi_preproc_nor.nii.gz"
+        "data/in-vivo/raw/data_nor.nii.gz"
     )
 
     data_patch = data[10:45, 90:120, 89, :]
