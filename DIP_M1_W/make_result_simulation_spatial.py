@@ -73,20 +73,20 @@ if not os.path.exists(save_data_path):
     os.makedirs(save_data_path)
 
 
-noisy_path = "data/generate_data/experiments/Spatial_Transformation_noisy/dwi_level_7_9.nii.gz"
+noisy_path = "data/generate_data/experiments/Spatial_Transformation_noisy/dwi_level_3_5.nii.gz"
 input_path = 'data/generate_data/noisy_input.nii.gz'
 img_np,affine1 = load_nifti('data/generate_data/dwi_reference.nii.gz')
 net_input,_ = load_nifti(input_path)
-net_input = net_input[:,:,20:,:]
+#net_input = net_input[:,:,20:,:]
 noisy_data,affine = load_nifti(noisy_path)
-noisy_data = noisy_data[:,:,20:,:]
+#noisy_data = noisy_data[:,:,20:,:]
 noisy_data = noisy_data.transpose(3,0,1,2)
-img_np = img_np[:,:,20:,:]
+#img_np = img_np[:,:,20:,:]
 img_np = img_np.transpose(3,0,1,2)
 
 mask_path = 'data/generate_data/mask.nii.gz'
 mask,_ = load_nifti(mask_path)
-mask = mask[:,:,20:]
+#mask = mask[:,:,20:]
 mask_2D = mask[:,:,slice]
 
 #Configure the network.
