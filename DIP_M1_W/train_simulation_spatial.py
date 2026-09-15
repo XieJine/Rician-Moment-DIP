@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-"""Train the First Moment DIP model on simulated data with a spatially varying noise map.
+"""Train the Ricain first Moment DIP model on simulated data with a spatially varying noise map.
 
 User configuration:
     Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level or sigma_, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
