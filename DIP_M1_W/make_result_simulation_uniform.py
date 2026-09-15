@@ -41,7 +41,7 @@ noise_level = 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 epoch = 46360
-net_name = 'outputs/DIP_M1_W/generate_data/train_model/level_5/epoch_'+str(epoch)+'.pt'
+net_name = 'outputs/DIP_M1_W/generate_data/trained_model/level_5/epoch_'+str(epoch)+'.pt'
 save_name = "outputs/DIP_M1_W/generate_data/model_result/level_5/denoise/fig/"
 save_data_path  =  "outputs/DIP_M1_W/generate_data/model_result/level_5/denoise/"
 
