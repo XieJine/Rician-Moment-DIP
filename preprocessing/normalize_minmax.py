@@ -9,7 +9,7 @@ import numpy as np
 from dipy.data import get_fnames
 from dipy.io.image import load_nifti, save_nifti
 
-data,affine = load_nifti("data/MGH-HCP/raw/diff_32dir_b1k3k_64dir_b5k_128dir_b10k.nii.gz")
+data,affine = load_nifti("data/in-vivo/raw/data.nii.gz")
 data_nor = (data - np.min(data))/(np.max(data)-np.min(data))
 data_nor = data_nor.astype(np.float32)
-save_nifti('data/MGH-HCP/raw/diff_32dir_b1k3k_64dir_b5k_128dir_b10k_nor.nii.gz',data_nor,affine)
+save_nifti('data/in-vivo/raw/data_nor.nii.gz',data_nor,affine)
