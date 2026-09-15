@@ -1,8 +1,17 @@
-"""Clip per-volume outliers and apply global min-max normalization.
+"""
+Clip extreme intensity values in each DWI volume and then apply global
+min-max normalization.
 
-User configuration:
-    Key parameters to edit: input/output paths, crop or background-patch indices, volume index, and normalization/noise-estimation settings.
-    Relative paths assume execution from the repository root.
+This preprocessing step is optional. It is recommended when the in-vivo
+data contain outliers, NaN values, or infinite values that may adversely
+affect subsequent DIP denoising.
+
+Before running, update:
+    - Input and output file paths.
+    - LOW_PERCENTILE and HIGH_PERCENTILE for outlier clipping.
+    - Normalization settings, if a different intensity range is required.
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import os
@@ -12,18 +21,18 @@ from dipy.io.image import load_nifti, save_nifti
 # 1. File paths (edit before running).
 # ============================================================
 data_path = (
-    "data/MGH-HCP/raw/"
-    "diff_32dir_b1k3k_64dir_b5k_128dir_b10k.nii.gz"
+    "data/in-vivo/raw/"
+    "data.nii.gz"
 )
 
 save_clean_path = (
-    "data/MGH-HCP/raw/"
+    "data/in-vivo/raw/"
     "dwi_preproc_clean.nii.gz"
 )
 
 save_nor_path = (
-    "data/MGH-HCP/raw/"
-    "dwi_preproc_clean_minmax_nor.nii.gz"
+    "data/in-vivo/raw/"
+    "dwi_preproc_nor.nii.gz"
 )
 
 
