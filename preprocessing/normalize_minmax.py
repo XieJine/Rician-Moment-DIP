@@ -1,8 +1,15 @@
-"""Apply global min-max normalization to a 4D DWI dataset.
+"""
+Apply global min-max normalization to a 4D in-vivo DWI dataset.
 
-User configuration:
-    Key parameters to edit: input/output paths, crop or background-patch indices, volume index, and normalization/noise-estimation settings.
-    Relative paths assume execution from the repository root.
+This preprocessing step rescales all voxel intensities to the range [0, 1].
+It is suitable for datasets without substantial outliers. If the data contain
+outliers, NaN values, or infinite values, use `clip_and_normalize.py` instead.
+
+Before running, update:
+    - Input and output NIfTI file paths.
+    - The normalization range if values other than [0, 1] are required.
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import numpy as np
