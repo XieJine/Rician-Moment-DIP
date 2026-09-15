@@ -1,9 +1,9 @@
 from __future__ import print_function
 
-"""Train the weighted DIP model on simulated data with spatially uniform Rician noise.
+"""Train the Rician first Moment DIP model on simulated data with spatially uniform Rician noise.
 
 User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level or sigma_, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
+    Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
     Relative paths assume execution from the repository root.
 """
 
@@ -32,7 +32,7 @@ show_every = 40
 
 # load data
 mask,_ = load_nifti('data/generate_data/mask.nii.gz')
-mask = mask[:,:,20:]
+#mask = mask[:,:,20:]
 mask_np = mask.astype(np.float32)
 # Crop the volume to reduce memory use and computation.
 img_np_mask = mask_np
@@ -40,7 +40,7 @@ img_np_mask = mask_np
 print(img_np_mask.shape)
 # load noise free image
 img_np,_ = load_nifti('data/generate_data/dwi_reference.nii.gz')
-img_np = img_np[:,:,20:,:]
+#img_np = img_np[:,:,20:,:]
 img_np = img_np.astype(np.float32)
 # Noise level; edit for the experiment.
 noise_level = 5
@@ -56,7 +56,7 @@ img_np = img_np.transpose(3,0,1,2)
 # Load noisy data.
 img_noisy_np,_ = load_nifti('data/generate_data/dwi_level_' + str(noise_level) +'.nii.gz')
 img_noisy_np = img_noisy_np.astype(np.float32)
-img_noisy_np = img_noisy_np[:,:,20:]
+#img_noisy_np = img_noisy_np[:,:,20:]
 img_noisy_np = img_noisy_np.transpose(3,0,1,2)
 print(img_noisy_np.shape)
 sigma_ = noise_level  /100
@@ -93,7 +93,7 @@ net = get_net(input_depth, 'skip', pad,skip_n33d=32,skip_n33u=32,skip_n11=4,num_
 
 # Prepare the five-dimensional DIP input tensor.
 net_input,_ = load_nifti('data/generate_data/noisy_input.nii.gz')
-net_input = net_input[:,:,20:,:]
+#net_input = net_input[:,:,20:,:]
 net_input = net_input.transpose(3,0,1,2)
 net_input = np.expand_dims(net_input,axis=0)
 net_input = net_input.astype(np.float32)
@@ -186,31 +186,31 @@ def closure():   #######！！！！！#####
     rmse_out_list.append(RMSE_out)   
     total_loss_list.append(total_loss_)   #Record the loss value.  
     
-    path_main_1 = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/'
+    path_main_1 = 'outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/'
     if not os.path.exists(path_main_1):
         os.makedirs(path_main_1)
-    path_main_2 = 'outputs/DIP_M1_W/generate_data_2/iterations/level_5/'
+    path_main_2 = 'outputs/DIP_M1_W/generate_data/iterations/level_5/'
     if not os.path.exists(path_main_2):
         os.makedirs(path_main_2)
-    path_main_3 = 'outputs/DIP_M1_W/generate_data_2/result/level_5/'
+    path_main_3 = 'outputs/DIP_M1_W/generate_data/result/level_5/'
     if not os.path.exists(path_main_3):
         os.makedirs(path_main_3)
-    path_main_4= 'outputs/DIP_M1_W/generate_data_2/loss/level_5/'
+    path_main_4= 'outputs/DIP_M1_W/generate_data/loss/level_5/'
     if not os.path.exists(path_main_4):
         os.makedirs(path_main_4)
-    path_main_5 = 'outputs/DIP_M1_W/generate_data_2/trained_model/level_5/'
+    path_main_5 = 'outputs/DIP_M1_W/generate_data/trained_model/level_5/'
     if not os.path.exists(path_main_5):
         os.makedirs(path_main_5)
-    path_main_6 = 'outputs/DIP_M1_W/generate_data_2/model/level_5/'
+    path_main_6 = 'outputs/DIP_M1_W/generate_data/model/level_5/'
     if not os.path.exists(path_main_6):
         os.makedirs(path_main_6)
 
 
-    psnr_name = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/psnr_level_5.npy'
-    psnr_noisy_name = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/psnr_noise_level_5.npy'
+    psnr_name = 'outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/psnr_level_5.npy'
+    psnr_noisy_name = 'outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/psnr_noise_level_5.npy'
     # mse_name = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/mse_level_5.npy'
-    rmse_name = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/rmse_level_5.npy'
-    loss_name = 'outputs/DIP_M1_W/generate_data_2/psnr_rmse/level_5/loss_level_5.npy'
+    rmse_name = 'outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/rmse_level_5.npy'
+    loss_name = 'outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/loss_level_5.npy'
 
 
     psnr_array = np.array(psrn_out_list)
@@ -218,7 +218,7 @@ def closure():   #######！！！！！#####
     np.save(psnr_noisy_name, np.array(psrn_noisy_list))
     np.save(rmse_name, np.array(rmse_out_list))   
     np.save(loss_name, np.array(total_loss_list))
-    iteration_name = 'outputs/DIP_M1_W/generate_data_2/iterations/level_5/i.npy'  
+    iteration_name = 'outputs/DIP_M1_W/generate_data/iterations/level_5/i.npy'  
     np.save(iteration_name, i)
     #Save the metric history.
 
@@ -237,51 +237,55 @@ def closure():   #######！！！！！#####
             fig_name = 'outputs/DIP_M1_W/generate_data_2/result/level_5/epoch_' + str(i) +'.png'
             plt.figure(figsize=(8,1))
             plt.subplots_adjust(wspace=0, hspace=0, top=1, bottom=0, left=0, right=1), plt.axis('off')
-            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, 43],vmin=0,vmax=1, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, 43],vmin=0,vmax=0.4, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, 43],vmin=0,vmax=1, cmap='gray'), plt.axis('off') 
-            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, 43],vmin=0,vmax=0.4, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, X],vmin=0,vmax=1, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, X],vmin=0,vmax=0.4, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, X],vmin=0,vmax=1, cmap='gray'), plt.axis('off') 
+            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, X],vmin=0,vmax=0.4, cmap='gray'), plt.axis('off')
             plt.subplot(1,8,5), plt.imshow(out_np_X,vmin=0,vmax=1,cmap='gray'), plt.axis('off')
             plt.subplot(1,8,6), plt.imshow(out_np_Y,vmin=0,vmax=1,cmap='gray') , plt.axis('off') 
-            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, 43] - out_np_X)),vmin=0,vmax=0.3,cmap='gray') , plt.axis('off')
-            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, 43] - out_np_Y)),vmin=0,vmax=0.12,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, X] - out_np_X)),vmin=0,vmax=0.3,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, X] - out_np_Y)),vmin=0,vmax=0.12,cmap='gray') , plt.axis('off')
             plt.savefig(fig_name)
-        loss_name = 'outputs/DIP_M1_W/generate_data_2/loss/level_5/epoch_' + str(i%(show_every*2)) +'.pt'
-        model_name = 'outputs/DIP_M1_W/generate_data_2/trained_model/level_5/epoch_' + str(i) +'.pt'
-        model_name_ = 'outputs/DIP_M1_W/generate_data_2/model/level_5/epoch_' + str(i%(show_every*2)) +'.pt'
+        loss_name = 'outputs/DIP_M1_W/generate_data/loss/level_5/epoch_' + str(i%(show_every*2)) +'.pt'
+        model_name = 'outputs/DIP_M1_W/generate_data/trained_model/level_5/epoch_' + str(i) +'.pt'
+        model_name_ = 'outputs/DIP_M1_W/generate_data/model/level_5/epoch_' + str(i%(show_every*2)) +'.pt'
         torch.save(total_loss,loss_name)#Save the checkpoint.
         torch.save(net.state_dict(),model_name_)
         torch.save(net.state_dict(),model_name)#Save the checkpoint.
 
         
-        if  i!=0 and i!=show_every and psnr_noisy_array[i-show_every+1:i+1].min() - psnr_noisy_array[i-2*show_every+1:i-show_every+1].min() < -0.05:  
-            if last_i != i:
-                t = 5
-            if last_i == i:
-                t = t-1
-            last_i =i
-            if t==0:
-                if psnr_noisy_array[i].min() - psnr_noisy_array[i-show_every].min()<-0.5:
-                    t=1
-            if t >0:
-                i = i-show_every
-                net.load_state_dict(torch.load('outputs/DIP_M1_W/generate_data_2/model/level_5/epoch_' + str(i%(show_every*2)) +'.pt'))
-                total_loss = torch.load('outputs/DIP_M1_W/generate_data_2/loss/level_5/epoch_' + str(i%(show_every*2)) +'.pt')
-                total_loss.backward()
-                for k in range(i+1,i+show_every+1):
-                    del total_loss_list[i+1]
-                    del psrn_out_list[i+1]
-                    del rmse_out_list[i+1]
-                    del psrn_noisy_list[i+1]
-                total_loss_last = total_loss_list[i]
-                out = net(net_input)
-                out_inside_last = out.data
-            else:
-                total_loss_last = total_loss
-        else:
-            total_loss_last = total_loss
-    LR=0.01*0.9**(i//2000)
-    i += 1      
+        #if  i!=0 and i!=show_every and psnr_noisy_array[i-show_every+1:i+1].min() - psnr_noisy_array[i-2*show_every+1:i-show_every+1].min() < -0.05:  
+        #    if last_i != i:
+        #        t = 5
+        #    if last_i == i:
+        #        t = t-1
+        #    last_i =i
+        #    if t==0:
+        #        if psnr_noisy_array[i].min() - psnr_noisy_array[i-show_every].min()<-0.5:
+        #            t=1
+        #    if t >0:
+        #        i = i-show_every
+        #        net.load_state_dict(torch.load('outputs/DIP_M1_W/generate_data/model/level_5/epoch_' + str(i%(show_every*2)) +'.pt'))
+        #        total_loss = torch.load('outputs/DIP_M1_W/generate_data/loss/level_5/epoch_' + str(i%(show_every*2)) +'.pt')
+        #        total_loss.backward()
+        #        for k in range(i+1,i+show_every+1):
+        #            del total_loss_list[i+1]
+        #            del psrn_out_list[i+1]
+        #            del rmse_out_list[i+1]
+        #            del psrn_noisy_list[i+1]
+        #        total_loss_last = total_loss_list[i]
+        #        out = net(net_input)
+        #        out_inside_last = out.data
+        #    else:
+        #        total_loss_last = total_loss
+        #else:
+        #    total_loss_last = total_loss
+    #LR=0.01*0.9**(i//2000)
+    #i += 1  
+    LR = 0.01 * (0.9 ** (i // 2000))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = LR
+    i += 1 
     return total_loss_list,psrn_out_list,rmse_out_list
 
 p = get_params(OPT_OVER, net, net_input) 
