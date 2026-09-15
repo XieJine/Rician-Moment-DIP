@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-"""Train the weighted DIP model on an in-vivo DWI dataset.
+"""Train the first Moment DIP model on an in-vivo DWI dataset.
 
 User configuration:
     Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level or sigma_, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
