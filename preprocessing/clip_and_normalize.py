@@ -32,7 +32,7 @@ save_clean_path = (
 
 save_nor_path = (
     "data/in-vivo/raw/"
-    "dwi_preproc_nor.nii.gz"
+    "data_nor.nii.gz"
 )
 
 
