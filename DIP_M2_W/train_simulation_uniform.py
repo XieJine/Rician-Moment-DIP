@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-"""Train the weighted DIP model on simulated data with spatially uniform Rician noise.
+"""Train the Rician second Moment DIP model on simulated data with spatially uniform Rician noise.
 
 User configuration:
     Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level or sigma_, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
@@ -56,7 +56,7 @@ img_noisy_np,_ = load_nifti('data/generate_data/dwi_level_' + str(noise_level) +
 img_noisy_np = img_noisy_np.astype(np.float32)
 img_noisy_np = img_noisy_np.transpose(3,0,1,2)
 print(img_noisy_np.shape)
-sigma_ = noise_level  /100
+sigma_ = noise_level /100
 
 # Apply the brain mask to noisy data.
 img_noisy_np_nonskull = img_noisy_np * img_np_mask
@@ -79,14 +79,11 @@ LR = 0.01
 # Optimizer.
 OPTIMIZER='adam'
 #Maximum number of iterations.
-num_iter = 200000
+num_iter = 50000
 #Number of input/output channels (DWI volumes). 
-input_depth = 16
+input_depth = 31
 # Initialize the network.
 net = get_net(input_depth, 'skip', pad,skip_n33d=32,skip_n33u=32,skip_n11=4,num_scales=4,upsample_mode='trilinear',n_channels=16).type(dtype)
-
-
-
 
 # Prepare the five-dimensional DIP input tensor.
 net_input,_ = load_nifti('data/generate_data/noisy_input.nii.gz')
@@ -206,14 +203,14 @@ def closure():   #######！！！！！#####
             fig_name = 'outputs/DIP_M2_W/generate_data/result/level_5/epoch_' + str(i) +'.png'
             plt.figure(figsize=(8,1))
             plt.subplots_adjust(wspace=0, hspace=0, top=1, bottom=0, left=0, right=1), plt.axis('off')
-            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, 63],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, 63],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, 63],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off') 
-            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, 63],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, X],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, X],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, X],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off') 
+            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, X],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
             plt.subplot(1,8,5), plt.imshow(out_np_X,vmin=0,vmax=0.5,cmap='gray'), plt.axis('off')
             plt.subplot(1,8,6), plt.imshow(out_np_Y,vmin=0,vmax=0.3,cmap='gray') , plt.axis('off') 
-            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, 63] - out_np_X)),vmin=0,vmax=0.15,cmap='gray') , plt.axis('off')
-            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, 63] - out_np_Y)),vmin=0,vmax=0.09,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, X] - out_np_X)),vmin=0,vmax=0.15,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, X] - out_np_Y)),vmin=0,vmax=0.09,cmap='gray') , plt.axis('off')
             plt.savefig(fig_name)
         loss_name = 'outputs/DIP_M2_W/generate_data/loss/level_5/epoch_' + str(i%(show_every*2)) +'.pt'
         model_name = 'outputs/DIP_M2_W/generate_data/trained_model/level_5/epoch_' + str(i) +'.pt'
@@ -249,8 +246,12 @@ def closure():   #######！！！！！#####
                 total_loss_last = total_loss
         else:
             total_loss_last = total_loss
-    LR=0.01*0.9**(i//2000)
-    i += 1      
+    #LR=0.01*0.9**(i//2000)
+    #i += 1    
+    LR = 0.01 * (0.9 ** (i // 2000))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = LR
+    i += 1 
     return total_loss_list,psrn_out_list,rmse_out_list
 
 p = get_params(OPT_OVER, net, net_input) 
