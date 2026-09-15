@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-"""Train the first Moment DIP model on an in-vivo DWI dataset.
+"""Train the Rician first Moment DIP model on an in-vivo DWI dataset.
 
 User configuration:
     Key parameters to edit: CUDA_VISIBLE_DEVICES, input NIfTI paths, crop ranges, noise_level or sigma_, LR, num_iter, input_depth, show_every, checkpoint-resume settings, and all output directories.
@@ -52,7 +52,7 @@ show_every = 40
 
 
 # Load noisy data.
-img_noisy_np,_ = load_nifti("data/in_vivo/1p5T/b1500/noisy_data.nii.gz")  #b1kb3k[0:66]  b5k[66,131] b10k[131,260]
+img_noisy_np,_ = load_nifti("data/in_vivo/noisy_data.nii.gz")  #b1kb3k[0:66]  b5k[66,131] b10k[131,260]
 img_noisy_np = img_noisy_np[:,:,:,:]
 # img_noisy_np = img_noisy_np[:,:,:,1:]
 img_noisy_np = img_noisy_np.astype(np.float32)
@@ -65,7 +65,7 @@ print(img_noisy_np.shape)
 #sigma_ = np.clip(sigma_, a_min=0.001, a_max=None)
 #sigma_ = np_to_torch(sigma_).type(dtype).cuda()
 
-sigma_ = 0.028
+sigma_ = 0.028 
 #print(sigma_.shape)
 # Apply the brain mask to noisy data.
 img_noisy_np_nonskull = img_noisy_np
@@ -88,7 +88,7 @@ LR = 0.01
 # Optimizer.
 OPTIMIZER='adam'
 #Maximum number of iterations.
-num_iter = 200000
+num_iter = 50000
 #Number of input/output channels (DWI volumes). 
 input_depth = 17
 # Initialize the network.
@@ -96,7 +96,7 @@ net = get_net(input_depth, 'skip', pad,skip_n33d=32,skip_n33u=32,skip_n11=4,num_
 
 
 # Prepare the five-dimensional DIP input tensor.
-net_input,_ = load_nifti("data/in_vivo/1p5T/b1500/noisy_input.nii.gz")
+net_input,_ = load_nifti("data/in_vivo/noisy_input.nii.gz")
 net_input = net_input.astype(np.float32)
 net_input = net_input[:,:,:,:]
 
