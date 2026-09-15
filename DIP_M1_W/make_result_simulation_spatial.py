@@ -1,10 +1,31 @@
 from __future__ import print_function
 
-"""Export results and metrics for spatially varying noise.
+"""
+Generate denoised results from a checkpoint trained by
+`train_simulation_spatial.py`.
 
-User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, epoch, checkpoint path, input/mask/reference paths, crop and display slice, input_depth, and result/figure output paths.
-    Relative paths assume execution from the repository root.
+This script loads the selected DIP-M1-W checkpoint from the simulation
+experiment with a spatially varying Rician noise map. It applies the trained
+model to the corresponding noisy simulated DWI data, exports the denoised
+NIfTI result, and optionally calculates quantitative metrics and saves figures.
+
+Before running, ensure that the following settings are consistent with
+`train_simulation_spatial.py`:
+    - Model architecture and input_depth.
+    - Noisy DWI, reference DWI, brain mask, and DIP input paths.
+    - Spatial crop range used during training.
+    - Spatially varying noise-map path and noise setting.
+    - Checkpoint path and selected epoch.
+
+Key parameters to edit:
+    - CUDA_VISIBLE_DEVICES
+    - epoch
+    - net_name
+    - noisy_path, input_path, reference-data path, mask_path, and noise-map path
+    - save_data_path and save_name
+    - slice for visualization
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import numpy as np
@@ -41,9 +62,9 @@ noise_level = 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 epoch = 14000
-net_name = 'outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/best_train_model/level_7_9/epoch_'+str(epoch)+'.pt'
-save_name = "outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/best_train_model/level_7_9/denoise/fig/"
-save_data_path  =  "outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/best_train_model/level_7_9/denoise/"
+net_name = 'outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/trained_model/level_3_5/epoch_'+str(epoch)+'.pt'
+save_name = "outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/model_result/level_3_5/denoise/fig/"
+save_data_path  =  "outputs/DIP_M1_W/Spatial_transformation_noisy_truenoise/model_result/level_3_5/denoise/"
 
 if not os.path.exists(save_name):
     os.makedirs(save_name)
