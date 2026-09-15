@@ -15,7 +15,7 @@ import numpy as np
 from dipy.io.image import load_nifti,save_nifti
 
 data,affine = load_nifti("data/in-vivo/raw/data_nor.nii.gz")
-mask,affine = load_nifti("data/in-vivo/mask.nii.gz")
+mask,affine = load_nifti("data/in-vivo/raw/mask.nii.gz")
 
 data_crop = data[19:113,5:115,20:40,:] 
 mask_crop = mask[19:113,5:115,20:40]
