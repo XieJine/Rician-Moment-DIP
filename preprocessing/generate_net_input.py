@@ -14,7 +14,7 @@ used as the network input for DIP optimization.
 import numpy as np
 from dipy.io.image import load_nifti,save_nifti
 
-data,affine = load_nifti("data/in-vivo/noisy_data_raw.nii.gz")
+data,affine = load_nifti("data/in-vivo/raw/data_nor.nii.gz")
 mask,affine = load_nifti("data/in-vivo/mask.nii.gz")
 
 data_crop = data[19:113,5:115,20:40,:] 
