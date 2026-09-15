@@ -32,7 +32,7 @@ show_every = 40
 
 # load data
 mask,_ = load_nifti("data/generate_data/mask.nii.gz")
-mask = mask[:,:,20:]
+#mask = mask[:,:,20:]
 mask_np = mask.astype(np.float32)
 # Crop the volume to reduce memory use and computation.
 img_np_mask = mask_np
@@ -40,7 +40,7 @@ img_np_mask = mask_np
 print(img_np_mask.shape)
 # load noise free image
 img_np,_ = load_nifti('data/generate_data/dwi_reference.nii.gz')
-img_np = img_np[:,:,20:,:]
+#img_np = img_np[:,:,20:,:]
 img_np = img_np.astype(np.float32)
 # Noise level; edit for the experiment.
 noise_level = 5
@@ -55,7 +55,7 @@ img_np = img_np.transpose(3,0,1,2)
 # Load noisy data.
 img_noisy_np,_ = load_nifti('data/generate_data/dwi_level_' + str(noise_level) +'.nii.gz')
 img_noisy_np = img_noisy_np.astype(np.float32)
-img_noisy_np = img_noisy_np[:,:,20:]
+#img_noisy_np = img_noisy_np[:,:,20:]
 img_noisy_np = img_noisy_np.transpose(3,0,1,2)
 print(img_noisy_np.shape)
 
