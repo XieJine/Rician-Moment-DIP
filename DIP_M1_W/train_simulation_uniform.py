@@ -82,7 +82,7 @@ LR = 0.01
 # Optimizer.
 OPTIMIZER='adam'
 #Maximum number of iterations.
-num_iter = 200000
+num_iter = 50000
 #Number of input/output channels (DWI volumes). 
 input_depth = 31
 # Initialize the network.
