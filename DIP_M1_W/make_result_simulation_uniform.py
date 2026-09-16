@@ -1,10 +1,30 @@
 from __future__ import print_function
 
-"""Export results and metrics for a noise-level ablation experiment.
+"""
+Generate denoised results from a checkpoint trained by
+`train_simulation_uniform.py`.
 
-User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, epoch, checkpoint path, input/mask/reference paths, crop and display slice, input_depth, and result/figure output paths.
-    Relative paths assume execution from the repository root.
+This script loads the selected DIP-M1-W model checkpoint obtained from the
+uniform Rician-noise simulation experiment, applies the trained model to the
+corresponding noisy simulated DWI data, and exports the denoised NIfTI result.
+It can also calculate quantitative metrics and save visualization figures.
+
+Before running, ensure that the following settings are consistent with
+`train_simulation_uniform.py`:
+    - Model architecture and input_depth.
+    - Simulated noisy data, reference data, mask, and DIP input paths.
+    - Noise level and spatial crop range.
+    - Checkpoint path and selected epoch.
+
+Key parameters to edit:
+    - CUDA_VISIBLE_DEVICES
+    - epoch
+    - net_name
+    - noisy_path, input_path, reference-data path, and mask_path
+    - save_data_path and save_name
+    - slice for visualization
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import numpy as np
