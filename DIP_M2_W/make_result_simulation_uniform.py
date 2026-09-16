@@ -61,9 +61,9 @@ noise_level = 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 epoch = 61560
-net_name = 'outputs/DIP_M2_W/sigma_Ablation/train_model/level_5/epoch_'+str(epoch)+'.pt'
-save_name = "outputs/DIP_M2_W/sigma_Ablation/result_model/level_5/denoise/fig/"
-save_data_path  =  "outputs/DIP_M2_W/sigma_Ablation/best_train_model/level_5/denoise/"
+net_name = 'outputs/DIP_M2_W/generate_data/trained_model/level_5/epoch_' + str(epoch) + '.pt'
+save_name = "outputs/DIP_M2_W/generate_data/model_result/level_5/denoise/fig/"
+save_data_path = "outputs/DIP_M2_W/generate_data/model_result/level_5/denoise/"
 
 if not os.path.exists(save_name):
     os.makedirs(save_name)
@@ -76,16 +76,16 @@ noisy_path = 'data/generate_data/dwi_level_' + str(noise_level) +'.nii.gz'
 input_path = 'data/generate_data/noisy_input.nii.gz'
 img_np,affine1 = load_nifti('data/generate_data/dwi_reference.nii.gz')
 net_input,_ = load_nifti(input_path)
-net_input = net_input[:,:,20:,:]
+#net_input = net_input[:,:,20:,:]
 noisy_data,affine = load_nifti(noisy_path)
-noisy_data = noisy_data[:,:,20:,:]
+#noisy_data = noisy_data[:,:,20:,:]
 noisy_data = noisy_data.transpose(3,0,1,2)
-img_np = img_np[:,:,20:,:]
+#img_np = img_np[:,:,20:,:]
 img_np = img_np.transpose(3,0,1,2)
 
 mask_path = 'data/generate_data/mask.nii.gz'
 mask,_ = load_nifti(mask_path)
-mask = mask[:,:,20:]
+#mask = mask[:,:,20:]
 mask_2D = mask[:,:,slice]
 
 #Configure the network.
