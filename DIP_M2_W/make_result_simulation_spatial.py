@@ -1,10 +1,30 @@
 from __future__ import print_function
 
-"""Export results and metrics for spatially varying noise.
+"""
+Generate denoised results from a checkpoint trained by
+`train_simulation_spatial.py`.
 
-User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, epoch, checkpoint path, input/mask/reference paths, crop and display slice, input_depth, and result/figure output paths.
-    Relative paths assume execution from the repository root.
+This script loads the selected DIP-M2-W checkpoint from the simulation
+experiment with a spatially varying Rician noise map. It applies the trained
+model to the corresponding noisy simulated DWI data, exports the denoised
+NIfTI result, and optionally calculates quantitative metrics and saves figures.
+
+Before running, ensure that the following settings are consistent with
+`train_simulation_spatial.py`:
+    - Model architecture and input_depth.
+    - Noisy DWI, reference DWI, brain mask, and DIP input paths.
+    - Spatial crop range used during training.
+    - Spatially varying noise-map path and noise setting.
+    - Checkpoint path and selected epoch.
+
+Key parameters to edit:
+    - CUDA_VISIBLE_DEVICES
+    - epoch and net_name
+    - noisy_path, input_path, reference-data path, mask_path, and noise-map path
+    - save_data_path and save_name
+    - slice for visualization
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import numpy as np
@@ -41,9 +61,9 @@ noise_level = 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 epoch = 83960
-net_name = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/best_train_model/level_5_7/epoch_'+str(epoch)+'.pt'
-save_name = "outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/best_train_model/level_5_7/denoise/fig/"
-save_data_path  =  "outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/best_train_model/level_5_7/denoise/"
+net_name = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/train_model/level_3_5/epoch_'+str(epoch)+'.pt'
+save_name = "outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/result_model/level_3_5/denoise/fig/"
+save_data_path  =  "outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/result_model/level_3_5/denoise/"
 
 if not os.path.exists(save_name):
     os.makedirs(save_name)
@@ -52,20 +72,20 @@ if not os.path.exists(save_data_path):
     os.makedirs(save_data_path)
 
 
-noisy_path = "data/generate_data/experiments/Spatial_Transformation_noisy/dwi_level_5_7.nii.gz"
+noisy_path = "data/generate_data/dwi_level_3_5.nii.gz"
 input_path = 'data/generate_data/noisy_input.nii.gz'
 img_np,affine1 = load_nifti('data/generate_data/dwi_reference.nii.gz')
 net_input,_ = load_nifti(input_path)
-net_input = net_input[:,:,20:,:]
+#net_input = net_input[:,:,20:,:]
 noisy_data,affine = load_nifti(noisy_path)
-noisy_data = noisy_data[:,:,20:,:]
+#noisy_data = noisy_data[:,:,20:,:]
 noisy_data = noisy_data.transpose(3,0,1,2)
-img_np = img_np[:,:,20:,:]
+#img_np = img_np[:,:,20:,:]
 img_np = img_np.transpose(3,0,1,2)
 
 mask_path = 'data/generate_data/mask.nii.gz'
 mask,_ = load_nifti(mask_path)
-mask = mask[:,:,20:]
+#mask = mask[:,:,20:]
 mask_2D = mask[:,:,slice]
 
 #Configure the network.
