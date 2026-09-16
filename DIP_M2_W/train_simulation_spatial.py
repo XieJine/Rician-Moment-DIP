@@ -91,7 +91,7 @@ LR = 0.01
 # Optimizer.
 OPTIMIZER='adam'
 #Maximum number of iterations.
-num_iter = 200000
+num_iter = 50000
 #Number of input/output channels (DWI volumes). 
 input_depth = 31
 # Initialize the network.
@@ -125,20 +125,20 @@ total_loss_list = []
 # # Optional checkpoint resume block.
 bp = False
 if bp:
-    ii = np.load('outputs/DIP_M2_W/generate_data_2/noisemap/iterations/level_5/i.npy')
-    i = np.load('outputs/DIP_M2_W/generate_data_2/noisemap/iterations/level_5/i.npy')
+    ii = np.load('outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/iterations/level_3_5/i.npy')
+    i = np.load('outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/iterations/level_3_5/i.npy')
     i = i-(i%40)
     LR=0.01*0.9**(i//2000)
 
-    trained_model_name = 'outputs/DIP_M2_W/generate_data_2/noisemap/trained_model/level_5/epoch_' + str(i) +'.pt'
+    trained_model_name = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/trained_model/level_3_5/epoch_' + str(i) +'.pt'
     #trained_model_name_last = 'outputs/DIP_M2_W/sigma_Ablation/trained_model/level_5_sigma3/epoch_' + str(i-1) +'.pt'
     #net.load_state_dict(torch.load(trained_model_name_last))
     #out_bp = net(net_input).data
     net.load_state_dict(torch.load(trained_model_name))
 
-    psrn_out_list = list(np.load('outputs/DIP_M2_W/generate_data_2/noisemap/psnr_rmse/level_5/psnr_level_5.npy'))
-    total_loss_list = list(np.load('outputs/DIP_M2_W/generate_data_2/noisemap/psnr_rmse/level_5/loss_level_5.npy'))
-    rmse_out_list = list(np.load('outputs/DIP_M2_W/generate_data_2/noisemap/psnr_rmse/level_5/rmse_level_5.npy'))
+    psrn_out_list = list(np.load('outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/psnr_level_3_5.npy'))
+    total_loss_list = list(np.load('outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/loss_level_3_5.npy'))
+    rmse_out_list = list(np.load('outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/rmse_level_3_5.npy'))
 
     for k in range(i,ii+1):
         del total_loss_list[i]
@@ -191,22 +191,22 @@ def closure():   #######！！！！！#####
     rmse_out_list.append(RMSE_out)   
     total_loss_list.append(total_loss_)   #Record the loss value.  
 
-    path_main_1 = 'outputs/DIP_M2_W/generate_data_2/noisemap/psnr_rmse/level_5/'
+   path_main_1 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/'
     if not os.path.exists(path_main_1):
         os.makedirs(path_main_1)
-    path_main_2 = 'outputs/DIP_M2_W/generate_data_2/noisemap/iterations/level_5/'
+    path_main_2 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/iterations/level_3_5/'
     if not os.path.exists(path_main_2):
         os.makedirs(path_main_2)
-    path_main_3 = 'outputs/DIP_M2_W/generate_data_2/noisemap/result/level_5/'
+    path_main_3 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/result/level_3_5/'
     if not os.path.exists(path_main_3):
         os.makedirs(path_main_3)
-    path_main_4= 'outputs/DIP_M2_W/generate_data_2/noisemap/loss/level_5/'
+    path_main_4= 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/loss/level_3_5/'
     if not os.path.exists(path_main_4):
         os.makedirs(path_main_4)
-    path_main_5 = 'outputs/DIP_M2_W/generate_data_2/noisemap/trained_model/level_5/'
+    path_main_5 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/trained_model/level_3_5/'
     if not os.path.exists(path_main_5):
         os.makedirs(path_main_5)
-    path_main_6 = 'outputs/DIP_M2_W/generate_data_2/noisemap/model/level_5/'
+    path_main_6 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/model/level_3_5/'
     if not os.path.exists(path_main_6):
         os.makedirs(path_main_6)
 
@@ -239,14 +239,14 @@ def closure():   #######！！！！！#####
             fig_name = path_main_3+'epoch_' + str(i) +'.png'
             plt.figure(figsize=(8,1))
             plt.subplots_adjust(wspace=0, hspace=0, top=1, bottom=0, left=0, right=1), plt.axis('off')
-            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, 63],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, 63],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
-            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, 63],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off') 
-            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, 63],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,1), plt.imshow(img_np_nonskull[0, :, :, X],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,2), plt.imshow(img_np_nonskull[1, :, :, X],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
+            plt.subplot(1,8,3), plt.imshow(img_noisy_np_nonskull[0, :, :, X],vmin=0,vmax=0.5, cmap='gray'), plt.axis('off') 
+            plt.subplot(1,8,4), plt.imshow(img_noisy_np_nonskull[1, :, :, X],vmin=0,vmax=0.3, cmap='gray'), plt.axis('off')
             plt.subplot(1,8,5), plt.imshow(out_np_X,vmin=0,vmax=0.5,cmap='gray'), plt.axis('off')
             plt.subplot(1,8,6), plt.imshow(out_np_Y,vmin=0,vmax=0.3,cmap='gray') , plt.axis('off') 
-            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, 63] - out_np_X)),vmin=0,vmax=0.15,cmap='gray') , plt.axis('off')
-            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, 63] - out_np_Y)),vmin=0,vmax=0.09,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,7), plt.imshow((abs(img_np_nonskull[0, :, :, X] - out_np_X)),vmin=0,vmax=0.15,cmap='gray') , plt.axis('off')
+            plt.subplot(1,8,8), plt.imshow((abs(img_np_nonskull[1, :, :, X] - out_np_Y)),vmin=0,vmax=0.09,cmap='gray') , plt.axis('off')
             plt.savefig(fig_name)
         loss_name =path_main_4+ 'epoch_' + str(i%(show_every*2)) +'.pt'
         model_name = path_main_5+'epoch_' + str(i) +'.pt'
