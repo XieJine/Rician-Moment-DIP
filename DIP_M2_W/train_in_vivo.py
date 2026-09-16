@@ -248,8 +248,12 @@ def closure():   #######！！！！！#####
         #         total_loss_last = total_loss
         # else:
         #     total_loss_last = total_loss
-    LR=0.01*0.9**(i//2000)
-    i += 1      
+    #LR=0.01*0.9**(i//2000)
+    #i += 1      
+    LR = 0.01 * (0.9 ** (i // 2000))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = LR
+    i += 1
     return total_loss_list,psrn_out_list,rmse_out_list
 
 p = get_params(OPT_OVER, net, net_input) 
