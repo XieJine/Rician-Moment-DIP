@@ -73,7 +73,7 @@ if not os.path.exists(save_data_path):
     os.makedirs(save_data_path)
 
 
-noisy_path = "data/generate_data/experiments/Spatial_Transformation_noisy/dwi_level_3_5.nii.gz"
+noisy_path = "data/generate_data/dwi_level_3_5.nii.gz"
 input_path = 'data/generate_data/noisy_input.nii.gz'
 img_np,affine1 = load_nifti('data/generate_data/dwi_reference.nii.gz')
 net_input,_ = load_nifti(input_path)
