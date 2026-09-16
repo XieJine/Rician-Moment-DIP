@@ -52,13 +52,13 @@ show_every = 40
 
 
 # Load noisy data.
-img_noisy_np,_ = load_nifti('data/nordic/subj8/30/acq/noisy_data.nii.gz')
-img_noisy_np = img_noisy_np[:,:,1:91,:]
+img_noisy_np,_ = load_nifti('data/in-vivo/noisy_data.nii.gz')
+#img_noisy_np = img_noisy_np[:,:,1:91,:]
 # img_noisy_np = img_noisy_np[:,:,:,1:]
 img_noisy_np = img_noisy_np.astype(np.float32)
 img_noisy_np = img_noisy_np.transpose(3,0,1,2)
 print(img_noisy_np.shape)
-sigma_ = 0.0016
+sigma_ = 0.0016  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Apply the brain mask to noisy data.
 img_noisy_np_nonskull = img_noisy_np
@@ -81,7 +81,7 @@ LR = 0.01
 # Optimizer.
 OPTIMIZER='adam'
 #Maximum number of iterations.
-num_iter = 200000
+num_iter = 50000
 #Number of input/output channels (DWI volumes). 
 input_depth = 31
 # Initialize the network.
@@ -91,10 +91,10 @@ net = get_net(input_depth, 'skip', pad,skip_n33d=32,skip_n33u=32,skip_n11=4,num_
 
 
 # Prepare the five-dimensional DIP input tensor.
-net_input,_ = load_nifti('data/nordic/subj8/30/acq/noisy_input.nii.gz')
+net_input,_ = load_nifti('data/in-vivo/noisy_input.nii.gz')
 net_input = net_input.astype(np.float32)
 # net_input = net_input[:,:,:,1:]
-net_input = net_input[:,:,1:91,:]
+#net_input = net_input[:,:,1:91,:]
 net_input = net_input.transpose(3,0,1,2)
 net_input = np.expand_dims(net_input,axis=0)
 net_input = net_input.astype(np.float32)
@@ -185,12 +185,12 @@ def closure():   #######！！！！！#####
     # psnr_name = 'outputs/DIP_M2_W/2015_simulated/psnr_rmse/level_3/psnr_level_3.npy'
     # mse_name = 'outputs/DIP_M2_W/2015_simulated/psnr_rmse/level_3/mse_level_3.npy'
     # rmse_name = 'outputs/DIP_M2_W/2015_simulated/psnr_rmse/level_3/rmse_level_3.npy'
-    loss_name = 'outputs/DIP_M2_W/acq30/loss.npy'
+    loss_name = 'outputs/DIP_M2_W/in-vivo/loss.npy'
     # np.save(psnr_name, np.array(psrn_out_list))
     # np.save(psnr_noisy_name, psnr_noisy_array)
     # np.save(rmse_name, np.array(rmse_out_list))   
     np.save(loss_name, np.array(total_loss_list))
-    iteration_name = 'outputs/DIP_M2_W/acq30/iterations/i.npy'  
+    iteration_name = 'outputs/DIP_M2_W/in-vivo/iterations/i.npy'  
     np.save(iteration_name, i)
     #Save the metric history.
 
