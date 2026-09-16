@@ -1,10 +1,30 @@
 from __future__ import print_function
 
-"""Load a selected checkpoint and export the in-vivo denoised DWI result.
+"""
+Generate denoised in-vivo DWI results from a checkpoint trained by
+`train_in_vivo.py`.
 
-User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, epoch, checkpoint path, input/mask/reference paths, crop and display slice, input_depth, and result/figure output paths.
-    Relative paths assume execution from the repository root.
+This script loads a selected DIP-M2-W checkpoint obtained by optimizing the
+model on the corresponding in-vivo DWI dataset. The loaded model is applied to
+the same DIP input used during training to generate and export the final
+denoised DWI volume. It can also save representative visualization figures.
+
+Before running, ensure that the following settings are consistent with
+`train_in_vivo.py`:
+    - Model architecture and input_depth.
+    - In-vivo noisy DWI path, brain-mask path, and DIP input path.
+    - Spatial crop range and DWI-volume order.
+    - Noise level or noise-map setting used during optimization.
+    - Checkpoint path and selected epoch.
+
+Key parameters to edit:
+    - CUDA_VISIBLE_DEVICES
+    - epoch and net_name
+    - noisy_path, input_path, and mask_path
+    - save_data_path and save_name
+    - slice for visualization
+
+Relative paths assume that the script is run from the repository root.
 """
 
 import numpy as np
@@ -38,11 +58,11 @@ slice = 20
 # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
-epoch = 183080
-net_name = 'outputs/DIP_M2_W/1p5T/best_model/b1k5/epoch_'+str(epoch)+'.pt'
-save_name = 'outputs/DIP_M2_W/1p5T/best_model/b1k5/fig_'+str(epoch)+'/'
+epoch = 83080
+net_name = 'outputs/DIP_M2_W/in-vivo/best_model/epoch_'+str(epoch)+'.pt'
+save_name = 'outputs/DIP_M2_W/in-vivo/best_model/fig_'+str(epoch)+'/'
 # Output directory for the denoised NIfTI volume.
-save_data_path  =  "outputs/DIP_M2_W/1p5T/denoised/"
+save_data_path  =  "outputs/DIP_M2_W/in-vivo/denoised/"
 
 if not os.path.exists(save_name):
     os.makedirs(save_name)
@@ -51,15 +71,15 @@ if not os.path.exists(save_data_path):
     os.makedirs(save_data_path)
 
 
-noisy_path ="data/in_vivo/1p5T/b1500/noisy_data.nii.gz"
-input_path = "data/in_vivo/1p5T/b1500/noisy_input.nii.gz"
+noisy_path ="data/in_vivo/noisy_data.nii.gz"
+input_path = "data/in_vivo/noisy_input.nii.gz"
 net_input,_ = load_nifti(input_path)
 net_input = net_input[:,:,:,:]
 noisy_data,affine = load_nifti(noisy_path)
 noisy_data = noisy_data[:,:,:,:]
 noisy_data = noisy_data.transpose(3,0,1,2)
 
-mask_path ="data/in_vivo/1p5T/b1500/mask.nii.gz"
+mask_path ="data/in_vivo/mask.nii.gz"
 mask,_ = load_nifti(mask_path)
 #mask = mask[:,:,:]
 mask_2D = mask[:,:,slice]
