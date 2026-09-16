@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load metric arrays.
-a1 = np.load("outputs/DIP_M1_W/generate_data_2/noisemap/psnr_rmse/level_5/psnr_level_5.npy")
-a = np.load("outputs/DIP_M1_W/generate_data_2/noisemap/psnr_rmse/level_5/loss_level_5.npy")
+a1 = np.load("outputs/DIP_M1_W/generate_data/noisemap/psnr_rmse/level_5/psnr_level_5.npy")
+a = np.load("outputs/DIP_M1_W/generate_data/noisemap/psnr_rmse/level_5/loss_level_5.npy")
 
 # Sample the saved metrics at the configured interval.
 x = [i for i in range(0, a.shape[0], 40)]
