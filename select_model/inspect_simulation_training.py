@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load metric arrays.
-path_main ="outputs/DIP_M1_W/generate_mean_dwi_input2/psnr_rmse/level_5/"
+path_main ="outputs/DIP_M1_W/generate_data/psnr_rmse/level_5/"
 a1 = np.load(path_main+"psnr_level_5.npy")
 a = np.load(path_main+"loss_level_5.npy")
 
