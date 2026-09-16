@@ -1,11 +1,31 @@
 from __future__ import print_function
-
-"""Export results and metrics for a noise-level ablation experiment.
-
-User configuration:
-    Key parameters to edit: CUDA_VISIBLE_DEVICES, epoch, checkpoint path, input/mask/reference paths, crop and display slice, input_depth, and result/figure output paths.
-    Relative paths assume execution from the repository root.
 """
+Generate denoised results from a checkpoint trained by
+`train_simulation_uniform.py`.
+
+This script loads the selected DIP-M2-W checkpoint from the simulation
+experiment with spatially uniform Rician noise. It applies the trained model
+to the corresponding noisy simulated DWI data, exports the denoised NIfTI
+result, and optionally calculates quantitative metrics and saves figures.
+
+Before running, ensure that the following settings are consistent with
+`train_simulation_uniform.py`:
+    - Model architecture and input_depth.
+    - Noisy DWI, reference DWI, brain mask, and DIP input paths.
+    - Spatial crop range used during training.
+    - Uniform noise level used during the simulation experiment.
+    - Checkpoint path and selected epoch.
+
+Key parameters to edit:
+    - CUDA_VISIBLE_DEVICES
+    - epoch and net_name
+    - noisy_path, input_path, reference-data path, and mask_path
+    - save_data_path and save_name
+    - slice for visualization
+
+Relative paths assume that the script is run from the repository root.
+"""
+
 
 import numpy as np
 from models import * 
@@ -41,9 +61,9 @@ noise_level = 5
 os.environ['CUDA_VISIBLE_DEVICES'] = '0' 
 
 epoch = 61560
-net_name = 'outputs/DIP_M2_W/sigma_Ablation/best_train_model/level_5_sigma4/epoch_'+str(epoch)+'.pt'
-save_name = "outputs/DIP_M2_W/sigma_Ablation/best_train_model/level_5_sigma4/denoise/fig/"
-save_data_path  =  "outputs/DIP_M2_W/sigma_Ablation/best_train_model/level_5_sigma4/denoise/"
+net_name = 'outputs/DIP_M2_W/sigma_Ablation/train_model/level_5/epoch_'+str(epoch)+'.pt'
+save_name = "outputs/DIP_M2_W/sigma_Ablation/result_model/level_5/denoise/fig/"
+save_data_path  =  "outputs/DIP_M2_W/sigma_Ablation/best_train_model/level_5/denoise/"
 
 if not os.path.exists(save_name):
     os.makedirs(save_name)
