@@ -54,13 +54,13 @@ img_np = img_np.transpose(3,0,1,2)
 
 
 # Load noisy data.
-img_noisy_np,_ = load_nifti("data/generate_data/experiments/Spatial_Transformation_noisy/dwi_level_3_5.nii.gz")
+img_noisy_np,_ = load_nifti("data/generate_data/dwi_level_3_5.nii.gz")
 img_noisy_np = img_noisy_np.astype(np.float32)
 #img_noisy_np = img_noisy_np[:,:,20:]
 img_noisy_np = img_noisy_np.transpose(3,0,1,2)
 print(img_noisy_np.shape)
 
-sigma_, _ = load_nifti("data/generate_data/experiments/Spatial_Transformation_noisy/noise_map_level_3_5.nii.gz") #
+sigma_, _ = load_nifti("data/generate_data/noise_map_level_3_5.nii.gz") #
 #sigma_ = sigma_[:,:,20:]
 sigma_ = np.expand_dims(sigma_,axis=0)
 sigma_ = np_to_torch(sigma_).type(dtype)
