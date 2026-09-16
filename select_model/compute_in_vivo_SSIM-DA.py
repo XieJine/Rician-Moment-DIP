@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-"""Compute offline in-vivo SSIM curves for saved checkpoints.
+"""Compute offline in-vivo SSIM-DA curves for saved checkpoints.
 
 User configuration:
     Key parameters to edit: metric/checkpoint paths, save directory, checkpoint interval, iteration range, b-value metadata, mask options, plot limits, and selection window.
@@ -35,7 +35,7 @@ BVAL_PATH = Path(
 )
 SAVE_DIR = Path(
     "outputs/DIP_M1_W/three_different_resolution2/"
-    "p9/offline_metrics_in_vivo_ssim_only_2"
+    "p9/offline_metrics_in_vivo_ssim_only"
 )
 
 INPUT_DEPTH = 99
@@ -360,10 +360,14 @@ def save_baseline_results(channel_scores, groups, save_dir):
     )
 
     lines = []
-    lines.append("Noisy data versus corresponding noisy shell mean")
-    lines.append("Overall SSIM: %.9f" % overall)
+    lines.append("SSIM-DA baseline for in-vivo data")
+    lines.append(
+        "SSIM-DA: structural similarity between direction-averaged images "
+        "within each b-value shell."
+    )
+    lines.append("Overall SSIM-DA: %.9f" % overall)
     lines.append("")
-    lines.append("Group\tVolumes\tMean\tMin\tMax\tStd")
+    lines.append("Group\tVolumes\tMean SSIM-DA\tMin\tMax\tStd")
     for label, count, mean_v, min_v, max_v, std_v in zip(
         labels,
         group_counts,
@@ -441,20 +445,21 @@ def main():
         stds,
     ) = save_baseline_results(channel_scores, groups, SAVE_DIR)
 
-    print("\n================ Baseline validation ================")
-    print("Overall noisy-vs-shell-mean SSIM: %0.9f" % overall)
+    print("\n================ SSIM-DA baseline validation ================")
+    print("Overall noisy SSIM-DA: %0.9f" % overall)
+    
     for label, count, mean_v, min_v, max_v, std_v in zip(
         labels, counts, means, mins, maxs, stds
     ):
         print(
-            "%8s  n=%3d  mean=%0.9f  min=%0.9f  "
+            "%8s  n=%3d  SSIM-DA mean=%0.9f  min=%0.9f  "
             "max=%0.9f  std=%0.9f"
             % (label, count, mean_v, min_v, max_v, std_v)
         )
-
-    print("\nSaved channel scores: %s" % (SAVE_DIR / "baseline_channel_ssim.npy"))
-    print("Saved summary npz  : %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.npz"))
-    print("Saved summary txt  : %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.txt"))
+    
+    print("\nSaved SSIM-DA scores : %s" % (SAVE_DIR / "baseline_channel_ssim.npy"))
+    print("Saved SSIM-DA summary: %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.npz"))
+    print("Saved SSIM-DA report : %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.txt"))
 
 
 if __name__ == "__main__":
