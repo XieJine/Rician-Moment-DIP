@@ -2,24 +2,6 @@
 
 This repository contains the official implementation of our proposed method. 
 The complete source code and configuration files will be released upon acceptance of the paper.
-# Rician-Aware Deep Image Prior for dMRI Denoising
-
-This repository contains the implementation used for Rician-aware, variance-weighted Deep Image Prior (DIP) denoising of diffusion MRI data. Two loss variants are provided:
-
-- `DIP_M1_W`: first-moment Rician bias correction with variance weighting.
-- `DIP_M2_W`: second-moment Rician bias correction with variance weighting.
-
-## Important prerequisite
-
-The submitted archive does **not** include the `models/` package, although every training and result-export script imports `get_net` from it. Before running the code, add the exact 3D DIP network implementation used for the study at:
-
-```text
-models/
-    __init__.py
-    ... files that define get_net(...)
-```
-
-Do not substitute a different architecture when reproducing reported results. The `utils/` package is included and has been consolidated from the two identical copies in the submitted archive.
 
 ## Installation
 
