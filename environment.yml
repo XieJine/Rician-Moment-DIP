@@ -1,0 +1,21 @@
+name: rician-moment-dip
+
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+
+dependencies:
+  - python=3.8
+  - pytorch=2.0.0
+  - torchvision=0.15.0
+  - pytorch-cuda=11.7
+  - numpy=1.24.3
+  - scipy=1.10.1
+  - matplotlib=3.7.2
+  - pillow=9.4.0
+  - pip
+  - pip:
+      - dipy==1.7.0
+      - nibabel==5.1.0
+      - scikit-image>=0.19,<0.22
