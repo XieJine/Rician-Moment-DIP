@@ -54,7 +54,7 @@ plt.rcParams["legend.fontsize"] = 12
 METRIC_DIR = Path(
     "outputs/DIP_M1_W/"
     "three_different_resolution2/p9/"
-    "offline_metrics_in_vivo_ssim_only2/"
+    "offline_metrics_in_vivo_ssim_da/"
 )
 
 SAVE_FIG_DIR = METRIC_DIR / "curve_figures_ssim_median_max_square"
