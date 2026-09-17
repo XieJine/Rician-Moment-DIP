@@ -7,113 +7,317 @@ User configuration:
     Relative paths assume execution from the repository root.
 """
 
+import os
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 
+import re
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+import torch
 from dipy.io.image import load_nifti
 from nibabel.processing import resample_from_to
-from scipy.ndimage import binary_erosion
 from skimage.metrics import structural_similarity
 
+from models import *
+
 
 # =====================================================================
-# Configuration
+# 1. Configuration
 # =====================================================================
-NOISY_PATH = Path(
-    "data/three_resolution/noedic/"
-    "p9/noisy_data.nii.gz"
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DTYPE = torch.float32
+
+
+# ---------------------------------------------------------------------
+# Checkpoints
+# ---------------------------------------------------------------------
+# Folder containing all epoch_*.pt checkpoint files.
+CHECKPOINT_DIR = Path(
+    "/root/xje/DIP_M2_W_3D/mgh_hcp2/"
+    "trained_model"
 )
-MASK_PATH = Path(
-    "data/three_resolution/noedic/"
-    "p9/mask_new.nii.gz"
-)
-BVAL_PATH = Path(
-    "data/three_resolution/noedic/"
-    "p9/AP.bval"
-)
+
+
+# ---------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------
 SAVE_DIR = Path(
-    "outputs/DIP_M1_W/three_different_resolution2/"
-    "p9/offline_metrics_in_vivo_ssim_only"
+    "/root/xje/DIP_M2_W_3D/mgh_hcp2/"
+    "offline_metrics_in_vivo_ssim_da"
 )
 
-INPUT_DEPTH = 99
-DATA_RANGE = 1.0
-B0_THRESHOLD = 50.0
-BVAL_GROUP_ROUND = 50.0
 
+# ---------------------------------------------------------------------
+# Input data
+# ---------------------------------------------------------------------
+NOISY_PATH = Path(
+    "/root/xje/DIP_data/MGH-HCP/new/"
+    "new_new/noisy_data.nii.gz"
+)
+
+INPUT_PATH = Path(
+    "/root/xje/DIP_data/MGH-HCP/new/"
+    "new_new/noisy_input.nii.gz"
+)
+
+MASK_PATH = Path(
+    "/root/xje/DIP_data/MGH-HCP/new/"
+    "new_new/mask.nii.gz"
+)
+
+BVAL_PATH = Path(
+    "/root/xje/DIP_data/MGH-HCP/new/"
+    "bval.txt"
+)
+
+
+# ---------------------------------------------------------------------
+# Mask
+# ---------------------------------------------------------------------
 AUTO_RESAMPLE_MASK = True
 MASK_THRESHOLD = 0.5
 
-# Your 4D mask channels are not identical. To reproduce the evaluation
-# currently used in SSIM_new.py, use the first channel as the 3D mask.
-MASK_4D_MODE = "first"
-MASK_MAJORITY_FRACTION = 0.5
+
+# ---------------------------------------------------------------------
+# b-value grouping
+# ---------------------------------------------------------------------
+B0_THRESHOLD = 50.0
+
+# Values such as 1499.8 and 1501.2 are grouped into b=1500.
+BVALUE_ROUND_TO = 50.0
+
+
+# ---------------------------------------------------------------------
+# Network architecture
+# Must exactly match the training configuration.
+# ---------------------------------------------------------------------
+PAD = "reflection"
+SKIP_N33D = 261
+SKIP_N33U = 261
+SKIP_N11 = 4
+NUM_SCALES = 4
+UPSAMPLE_MODE = "trilinear"
+
+
+# ---------------------------------------------------------------------
+# SSIM
+# ---------------------------------------------------------------------
+# Data are assumed to be normalized approximately to [0, 1].
+DATA_RANGE = 1.0
+
+
+# Save intermediate results every N checkpoints.
+SAVE_EVERY_N_CHECKPOINTS = 10
+
+
+# =====================================================================
+# 2. Checkpoint utilities
 # =====================================================================
 
+def extract_epoch(path: Path) -> int:
+    """Extract iteration number from epoch_XXXX.pt."""
+    match = re.search(r"epoch_(\d+)\.pt$", path.name)
 
-def format_bvalue_label(b_value):
-    b_value = float(b_value)
-    if abs(b_value) <= B0_THRESHOLD:
-        return "b0"
-    if abs(b_value - round(b_value)) < 1e-6:
-        return "b%d" % int(round(b_value))
-    return ("b%.1f" % b_value).replace(".", "p")
-
-
-def resolve_volume_groups(input_depth):
-    if not BVAL_PATH.exists():
-        raise FileNotFoundError("Missing b-value file: %s" % BVAL_PATH)
-
-    bvals = np.asarray(
-        np.loadtxt(str(BVAL_PATH)), dtype=np.float32
-    ).reshape(-1)
-
-    if len(bvals) != input_depth:
+    if match is None:
         raise ValueError(
-            "b-values contain %d entries, but INPUT_DEPTH=%d."
-            % (len(bvals), input_depth)
+            f"Cannot parse epoch from checkpoint name: {path.name}"
         )
 
-    b0_idx = np.flatnonzero(bvals <= B0_THRESHOLD).astype(np.int64)
-    dwi_idx = np.flatnonzero(bvals > B0_THRESHOLD).astype(np.int64)
+    return int(match.group(1))
 
-    groups = []
-    if len(b0_idx) > 0:
-        groups.append(("b0", 0.0, b0_idx))
 
-    dwi_bvals = bvals[dwi_idx]
-    grouped_bvals = (
-        np.round(dwi_bvals / float(BVAL_GROUP_ROUND))
-        * float(BVAL_GROUP_ROUND)
+def list_checkpoints(folder: Path):
+    """Find and sort all epoch_*.pt checkpoints."""
+
+    checkpoints = []
+
+    for path in folder.glob("epoch_*.pt"):
+        try:
+            checkpoints.append(
+                (extract_epoch(path), path)
+            )
+        except ValueError:
+            continue
+
+    checkpoints.sort(
+        key=lambda item: item[0]
     )
 
-    for grouped_b in np.sort(np.unique(grouped_bvals)):
-        member_mask = np.isclose(grouped_bvals, grouped_b, atol=1e-6)
-        indices = dwi_idx[member_mask].astype(np.int64)
-        groups.append(
-            (format_bvalue_label(grouped_b), float(grouped_b), indices)
+    return checkpoints
+
+
+def load_state_dict_robust(path: Path, device):
+    """Load a checkpoint saved in several common PyTorch formats."""
+
+    try:
+        checkpoint = torch.load(
+            str(path),
+            map_location=device,
+            weights_only=False,
         )
 
-    used_indices = np.concatenate([indices for _, _, indices in groups])
-    if len(used_indices) != input_depth:
+    except TypeError:
+        checkpoint = torch.load(
+            str(path),
+            map_location=device,
+        )
+
+    if (
+        isinstance(checkpoint, dict)
+        and "model_state_dict" in checkpoint
+    ):
+        state_dict = checkpoint["model_state_dict"]
+
+    elif (
+        isinstance(checkpoint, dict)
+        and "state_dict" in checkpoint
+    ):
+        state_dict = checkpoint["state_dict"]
+
+    else:
+        state_dict = checkpoint
+
+    if not isinstance(state_dict, dict):
+        raise TypeError(
+            f"Unsupported checkpoint format: {path}"
+        )
+
+    # Remove DataParallel prefix if necessary.
+    cleaned = {}
+
+    for key, value in state_dict.items():
+
+        if key.startswith("module."):
+            key = key[len("module."):]
+
+        cleaned[key] = value
+
+    return cleaned
+
+
+# =====================================================================
+# 3. b-value grouping
+# =====================================================================
+
+def load_bvalues(path: Path, expected_count: int):
+    """Load one b-value for each DWI volume."""
+
+    if not path.exists():
+        raise FileNotFoundError(
+            f"b-value file not found: {path}"
+        )
+
+    bvalues = np.asarray(
+        np.loadtxt(str(path)),
+        dtype=np.float64,
+    ).reshape(-1)
+
+    if bvalues.size != expected_count:
         raise ValueError(
-            "The b-value groups contain %d volumes, but INPUT_DEPTH=%d."
-            % (len(used_indices), input_depth)
-        )
-    if len(np.unique(used_indices)) != input_depth:
-        raise ValueError("Some volumes occur in more than one b-value group.")
-
-    print("b-value groups:")
-    for label, b_value, indices in groups:
-        print(
-            "  %s: representative b=%g, volumes=%d, indices=%s"
-            % (label, b_value, len(indices), indices.tolist())
+            f"The bval file contains {bvalues.size} values, "
+            f"but the image contains {expected_count} volumes."
         )
 
-    return groups
+    if not np.all(np.isfinite(bvalues)):
+        raise ValueError(
+            "The bval file contains NaN or infinite values."
+        )
 
+    return bvalues
+
+
+def make_bvalue_groups(
+    bvalues,
+    b0_threshold=50.0,
+    round_to=50.0,
+):
+    """
+    Group diffusion volumes according to b-value.
+
+    Returns
+    -------
+    shell_labels : ndarray [K]
+        Representative b-values:
+        [b0, b-shell1, b-shell2, ...]
+
+    shell_indices : list of ndarrays
+        Volume indices belonging to each shell.
+    """
+
+    bvalues = np.asarray(
+        bvalues,
+        dtype=np.float64,
+    ).reshape(-1)
+
+    # b0
+    b0_idx = np.flatnonzero(
+        bvalues <= float(b0_threshold)
+    ).astype(np.int64)
+
+    # non-zero diffusion-weighted volumes
+    dwi_idx = np.flatnonzero(
+        bvalues > float(b0_threshold)
+    ).astype(np.int64)
+
+    if b0_idx.size == 0:
+        raise ValueError(
+            f"No b0 volumes found using "
+            f"B0_THRESHOLD={b0_threshold}."
+        )
+
+    if dwi_idx.size == 0:
+        raise ValueError(
+            "No diffusion-weighted volumes found."
+        )
+
+    rounded_dwi = (
+        np.rint(
+            bvalues[dwi_idx] / float(round_to)
+        )
+        * float(round_to)
+    )
+
+    dwi_shells = np.unique(rounded_dwi)
+    dwi_shells.sort()
+
+    shell_labels = [0.0]
+    shell_indices = [b0_idx]
+
+    for shell in dwi_shells:
+
+        indices = dwi_idx[
+            np.isclose(
+                rounded_dwi,
+                shell,
+            )
+        ]
+
+        if indices.size == 0:
+            continue
+
+        shell_labels.append(
+            float(shell)
+        )
+
+        shell_indices.append(
+            indices.astype(np.int64)
+        )
+
+    return (
+        np.asarray(
+            shell_labels,
+            dtype=np.float64,
+        ),
+        shell_indices,
+    )
+
+
+# =====================================================================
+# 4. Brain mask
+# =====================================================================
 
 def prepare_mask_for_image(
     mask_data,
@@ -121,289 +325,456 @@ def prepare_mask_for_image(
     target_spatial_shape,
     target_affine,
 ):
-    mask_array = np.asarray(mask_data, dtype=np.float32)
-    original_shape = tuple(mask_array.shape)
-    mask_array = np.squeeze(mask_array)
+    """
+    Prepare a 3D binary brain mask on the same voxel grid as the DWI data.
+    """
 
-    print("Noisy spatial shape : %s" % (tuple(target_spatial_shape),))
-    print("Original mask shape : %s" % (original_shape,))
-    print("Squeezed mask shape : %s" % (tuple(mask_array.shape),))
-
-    if mask_array.ndim == 4:
-        if tuple(mask_array.shape[:3]) != tuple(target_spatial_shape):
-            raise ValueError(
-                "The 4D mask spatial shape does not match the noisy image: "
-                "mask=%s, image=%s."
-                % (mask_array.shape[:3], tuple(target_spatial_shape))
-            )
-
-        mask_channels = mask_array > float(MASK_THRESHOLD)
-        channel_counts = np.count_nonzero(mask_channels, axis=(0, 1, 2))
-        print(
-            "4D mask channel voxels: min=%d, median=%d, max=%d"
-            % (
-                int(channel_counts.min()),
-                int(np.median(channel_counts)),
-                int(channel_counts.max()),
-            )
-        )
-
-        mode = str(MASK_4D_MODE).strip().lower()
-        if mode == "first":
-            print("[Info] Using mask[..., 0] as the 3D spatial mask.")
-            mask_array = mask_channels[..., 0].astype(np.float32)
-        elif mode == "majority":
-            required = int(
-                np.ceil(mask_channels.shape[-1] * MASK_MAJORITY_FRACTION)
-            )
-            print(
-                "[Info] Majority mask: at least %d/%d channels."
-                % (required, mask_channels.shape[-1])
-            )
-            mask_array = (
-                np.count_nonzero(mask_channels, axis=-1) >= required
-            ).astype(np.float32)
-        elif mode == "union":
-            print("[Info] Using the union of all mask channels.")
-            mask_array = np.any(mask_channels, axis=-1).astype(np.float32)
-        else:
-            raise ValueError(
-                "Unsupported MASK_4D_MODE=%r. Use first, majority, or union."
-                % MASK_4D_MODE
-            )
+    mask_array = np.asarray(
+        mask_data,
+        dtype=np.float32,
+    )
 
     mask_array = np.squeeze(mask_array)
+
     if mask_array.ndim != 3:
         raise ValueError(
-            "Mask must be 3D after preparation, but got %s."
-            % (mask_array.shape,)
+            "Mask must be 3D after squeezing, "
+            f"but got {mask_array.shape}."
         )
 
-    shape_matches = tuple(mask_array.shape) == tuple(target_spatial_shape)
+    shape_matches = (
+        tuple(mask_array.shape)
+        == tuple(target_spatial_shape)
+    )
+
     affine_matches = np.allclose(
-        np.asarray(mask_affine, dtype=np.float64),
-        np.asarray(target_affine, dtype=np.float64),
+        np.asarray(
+            mask_affine,
+            dtype=np.float64,
+        ),
+        np.asarray(
+            target_affine,
+            dtype=np.float64,
+        ),
         rtol=0.0,
         atol=1e-4,
     )
 
     if not shape_matches or not affine_matches:
-        if not AUTO_RESAMPLE_MASK:
-            raise ValueError("Mask and noisy image are on different grids.")
 
-        print("[Info] Resampling mask with nearest-neighbor interpolation.")
+        if not AUTO_RESAMPLE_MASK:
+            raise ValueError(
+                "Mask and DWI image are on different grids."
+            )
+
+        print(
+            "[Info] Resampling mask to DWI grid..."
+        )
+
         source_mask = nib.Nifti1Image(
             mask_array,
-            np.asarray(mask_affine, dtype=np.float64),
+            np.asarray(
+                mask_affine,
+                dtype=np.float64,
+            ),
         )
-        resampled = resample_from_to(
+
+        resampled_mask = resample_from_to(
             source_mask,
             (
-                tuple(int(v) for v in target_spatial_shape),
-                np.asarray(target_affine, dtype=np.float64),
+                tuple(
+                    int(v)
+                    for v in target_spatial_shape
+                ),
+                np.asarray(
+                    target_affine,
+                    dtype=np.float64,
+                ),
             ),
             order=0,
         )
+
         mask_array = np.asarray(
-            resampled.get_fdata(dtype=np.float32), dtype=np.float32
+            resampled_mask.get_fdata(
+                dtype=np.float32
+            ),
+            dtype=np.float32,
         )
 
-    mask_bool = mask_array > float(MASK_THRESHOLD)
-    if tuple(mask_bool.shape) != tuple(target_spatial_shape):
-        raise ValueError(
-            "Prepared mask shape %s does not match image shape %s."
-            % (mask_bool.shape, tuple(target_spatial_shape))
-        )
+    mask_bool = (
+        mask_array > float(MASK_THRESHOLD)
+    )
+
     if not np.any(mask_bool):
-        raise ValueError("Prepared mask is empty.")
+        raise ValueError(
+            "Prepared brain mask is empty."
+        )
 
-    print("Mask voxel count    : %d" % np.count_nonzero(mask_bool))
+    print(
+        "Mask voxel count :",
+        np.count_nonzero(mask_bool),
+    )
+
     return mask_bool
 
 
-def build_repeated_noisy_mean_reference(noisy, bvalue_groups):
-    reference = np.empty_like(noisy, dtype=np.float32)
+def masked_bbox(mask_bool):
+    """Return the bounding box of the brain mask."""
 
-    for label, _, indices in bvalue_groups:
-        if len(indices) == 0:
-            raise ValueError("Empty b-value group: %s" % label)
-        group_mean = np.mean(noisy[indices], axis=0, dtype=np.float32)
-        reference[indices] = group_mean[None, ...]
+    coords = np.argwhere(mask_bool)
 
-    return reference
-
-
-def prepare_valid_ssim_mask(mask_bool, spatial_shape, win_size):
-    if tuple(mask_bool.shape) != tuple(spatial_shape):
+    if coords.size == 0:
         raise ValueError(
-            "Mask shape %s does not match image shape %s."
-            % (mask_bool.shape, spatial_shape)
+            "The brain mask is empty."
         )
 
-    structure = np.ones((win_size, win_size, win_size), dtype=bool)
-    valid_mask = binary_erosion(
-        mask_bool,
-        structure=structure,
-        border_value=0,
+    lo = coords.min(axis=0)
+    hi = coords.max(axis=0) + 1
+
+    return tuple(
+        slice(
+            int(lo[d]),
+            int(hi[d]),
+        )
+        for d in range(3)
     )
 
-    if not np.any(valid_mask):
-        pad = win_size // 2
-        valid_mask = mask_bool.copy()
-        valid_mask[:pad, :, :] = False
-        valid_mask[-pad:, :, :] = False
-        valid_mask[:, :pad, :] = False
-        valid_mask[:, -pad:, :] = False
-        valid_mask[:, :, :pad] = False
-        valid_mask[:, :, -pad:] = False
 
-    if not np.any(valid_mask):
-        raise ValueError(
-            "No valid brain voxels remain for win_size=%d." % win_size
-        )
+# =====================================================================
+# 5. Direction averaging
+# =====================================================================
 
-    return valid_mask
-
-
-def noisy_vs_shell_mean_channel_ssim(
-    repeated_reference,
-    noisy,
-    mask_bool,
-    data_range,
+def build_shell_mean_multichannel(
+    data_chwd,
+    shell_indices,
 ):
     """
-    Return one masked 3D SSIM score for every original noisy volume.
+    Convert original diffusion volumes into shell-wise
+    direction-averaged images.
 
-    Each noisy volume is compared with the noisy mean of its own b-value
-    group. The same valid brain-window mask is used as in SSIM_new.py.
+    Input
+    -----
+    data_chwd : [C, H, W, D]
+
+    Output
+    ------
+    shell_mean_data : [H, W, D, K]
+
+    Channel order:
+        [b0 mean,
+         first non-zero b-value mean,
+         second non-zero b-value mean,
+         ...]
     """
-    if repeated_reference.shape != noisy.shape:
-        raise ValueError(
-            "Input shapes differ: %s vs %s"
-            % (repeated_reference.shape, noisy.shape)
-        )
-    if repeated_reference.ndim != 4:
-        raise ValueError("Expected [C,X,Y,Z] data.")
 
-    min_spatial_dim = min(noisy.shape[1:])
-    win_size = min(7, min_spatial_dim)
+    data_chwd = np.asarray(
+        data_chwd,
+        dtype=np.float32,
+    )
+
+    channels = []
+
+    for indices in shell_indices:
+
+        indices = np.asarray(
+            indices,
+            dtype=np.int64,
+        ).reshape(-1)
+
+        if indices.size == 0:
+            raise ValueError(
+                "An empty b-value group was encountered."
+            )
+
+        # -------------------------------------------------------------
+        # Direction averaging within one b-value shell
+        # -------------------------------------------------------------
+        shell_mean = np.mean(
+            data_chwd[indices],
+            axis=0,
+            dtype=np.float32,
+        )
+
+        channels.append(
+            shell_mean
+        )
+
+    return np.stack(
+        channels,
+        axis=-1,
+    ).astype(
+        np.float32,
+        copy=False,
+    )
+
+
+# =====================================================================
+# 6. SSIM-DA
+# =====================================================================
+
+def calculate_ssim_da(
+    noisy_da,
+    reconstructed_da,
+    mask_bool,
+    bbox,
+    data_range=1.0,
+):
+    """
+    Calculate SSIM-DA between:
+
+        noisy direction-averaged images
+
+    and
+
+        reconstructed direction-averaged images.
+
+    Both inputs have shape:
+
+        [H, W, D, K]
+
+    where K is the number of b-value shells.
+    """
+
+    noisy_da = np.asarray(
+        noisy_da,
+        dtype=np.float32,
+    )
+
+    reconstructed_da = np.asarray(
+        reconstructed_da,
+        dtype=np.float32,
+    )
+
+    if noisy_da.shape != reconstructed_da.shape:
+        raise ValueError(
+            "SSIM-DA input shapes differ: "
+            f"{noisy_da.shape} vs "
+            f"{reconstructed_da.shape}"
+        )
+
+    if noisy_da.ndim != 4:
+        raise ValueError(
+            "Expected shell-mean data with shape "
+            f"[H,W,D,K], got {noisy_da.shape}."
+        )
+
+    # Apply brain mask.
+    mask_4d = (
+        mask_bool[..., None]
+        .astype(np.float32)
+    )
+
+    full_slices = (
+        bbox + (slice(None),)
+    )
+
+    noisy_crop = (
+        noisy_da * mask_4d
+    )[full_slices]
+
+    reconstructed_crop = (
+        reconstructed_da * mask_4d
+    )[full_slices]
+
+    # SSIM window size.
+    min_spatial_dim = min(
+        noisy_crop.shape[:3]
+    )
+
+    if min_spatial_dim < 3:
+        return np.nan
+
+    win_size = min(
+        7,
+        min_spatial_dim,
+    )
+
     if win_size % 2 == 0:
         win_size -= 1
-    if win_size < 3:
-        raise ValueError("Spatial dimensions are too small for SSIM.")
 
-    valid_mask = prepare_valid_ssim_mask(
-        mask_bool,
-        noisy.shape[1:],
-        win_size,
-    )
-    print("SSIM win_size     : %d" % win_size)
-    print("Valid SSIM voxels : %d per channel" % np.count_nonzero(valid_mask))
+    kwargs = {
+        "data_range": float(data_range),
+        "win_size": win_size,
+    }
 
-    channel_scores = np.full(noisy.shape[0], np.nan, dtype=np.float64)
-
-    for channel in range(noisy.shape[0]):
-        _, ssim_map = structural_similarity(
-            repeated_reference[channel],
-            noisy[channel],
-            data_range=float(data_range),
-            win_size=win_size,
-            full=True,
+    try:
+        value = structural_similarity(
+            noisy_crop,
+            reconstructed_crop,
+            channel_axis=-1,
+            **kwargs,
         )
 
-        values = np.asarray(ssim_map[valid_mask], dtype=np.float64)
-        finite_values = values[np.isfinite(values)]
-        if finite_values.size > 0:
-            channel_scores[channel] = float(finite_values.mean())
-
-        print(
-            "  volume %3d/%3d: SSIM=%0.6f"
-            % (channel + 1, noisy.shape[0], channel_scores[channel])
+    except TypeError:
+        # Compatibility with older scikit-image versions.
+        value = structural_similarity(
+            noisy_crop,
+            reconstructed_crop,
+            multichannel=True,
+            **kwargs,
         )
 
-    return channel_scores
+    return float(value)
 
 
-def save_baseline_results(channel_scores, groups, save_dir):
-    save_dir.mkdir(parents=True, exist_ok=True)
+# =====================================================================
+# 7. Save results
+# =====================================================================
 
-    labels = []
-    group_scores = []
-    group_min = []
-    group_max = []
-    group_std = []
-    group_counts = []
+def save_results(
+    epochs,
+    ssim_da_values,
+    save_dir,
+):
+    """Save SSIM-DA values for all processed checkpoints."""
 
-    for label, _, indices in groups:
-        values = channel_scores[indices]
-        finite = values[np.isfinite(values)]
-        labels.append(label)
-        group_counts.append(len(indices))
-        group_scores.append(float(np.mean(finite)) if finite.size else np.nan)
-        group_min.append(float(np.min(finite)) if finite.size else np.nan)
-        group_max.append(float(np.max(finite)) if finite.size else np.nan)
-        group_std.append(float(np.std(finite)) if finite.size else np.nan)
-
-    overall = float(np.nanmean(channel_scores))
-
-    np.save(save_dir / "baseline_channel_ssim.npy", channel_scores)
-    np.savez(
-        save_dir / "baseline_noisy_vs_shell_mean.npz",
-        overall_ssim=np.asarray(overall, dtype=np.float64),
-        group_labels=np.asarray(labels),
-        group_counts=np.asarray(group_counts, dtype=np.int64),
-        group_ssim=np.asarray(group_scores, dtype=np.float64),
-        group_min=np.asarray(group_min, dtype=np.float64),
-        group_max=np.asarray(group_max, dtype=np.float64),
-        group_std=np.asarray(group_std, dtype=np.float64),
-        channel_ssim=channel_scores,
+    save_dir.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
-    lines = []
-    lines.append("SSIM-DA baseline for in-vivo data")
-    lines.append(
-        "SSIM-DA: structural similarity between direction-averaged images "
-        "within each b-value shell."
+    np.save(
+        save_dir / "epochs.npy",
+        np.asarray(
+            epochs,
+            dtype=np.int64,
+        ),
     )
-    lines.append("Overall SSIM-DA: %.9f" % overall)
-    lines.append("")
-    lines.append("Group\tVolumes\tMean SSIM-DA\tMin\tMax\tStd")
-    for label, count, mean_v, min_v, max_v, std_v in zip(
-        labels,
-        group_counts,
-        group_scores,
-        group_min,
-        group_max,
-        group_std,
-    ):
-        lines.append(
-            "%s\t%d\t%.9f\t%.9f\t%.9f\t%.9f"
-            % (label, count, mean_v, min_v, max_v, std_v)
-        )
 
-    text_path = save_dir / "baseline_noisy_vs_shell_mean.txt"
-    text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    np.save(
+        save_dir / "ssim_da.npy",
+        np.asarray(
+            ssim_da_values,
+            dtype=np.float64,
+        ),
+    )
 
-    return overall, labels, group_counts, group_scores, group_min, group_max, group_std
 
+# =====================================================================
+# 8. Main
+# =====================================================================
 
 def main():
+
+    # -----------------------------------------------------------------
+    # Check files
+    # -----------------------------------------------------------------
+
     if not NOISY_PATH.exists():
-        raise FileNotFoundError("Missing noisy data: %s" % NOISY_PATH)
-    if not MASK_PATH.exists():
-        raise FileNotFoundError("Missing brain mask: %s" % MASK_PATH)
-
-    noisy_hwdc, affine = load_nifti(str(NOISY_PATH))
-    mask_data, mask_affine = load_nifti(str(MASK_PATH))
-
-    noisy_hwdc = np.asarray(noisy_hwdc, dtype=np.float32)
-    if noisy_hwdc.ndim != 4:
-        raise ValueError("Noisy data must be 4D: %s" % (noisy_hwdc.shape,))
-    if noisy_hwdc.shape[-1] != INPUT_DEPTH:
-        raise ValueError(
-            "Data contain %d volumes, but INPUT_DEPTH=%d."
-            % (noisy_hwdc.shape[-1], INPUT_DEPTH)
+        raise FileNotFoundError(
+            f"Noisy data not found: {NOISY_PATH}"
         )
+
+    if not INPUT_PATH.exists():
+        raise FileNotFoundError(
+            f"Network input not found: {INPUT_PATH}"
+        )
+
+    if not MASK_PATH.exists():
+        raise FileNotFoundError(
+            f"Brain mask not found: {MASK_PATH}"
+        )
+
+    if not BVAL_PATH.exists():
+        raise FileNotFoundError(
+            f"b-value file not found: {BVAL_PATH}"
+        )
+
+
+    # -----------------------------------------------------------------
+    # Checkpoints
+    # -----------------------------------------------------------------
+
+    checkpoints = list_checkpoints(
+        CHECKPOINT_DIR
+    )
+
+    if len(checkpoints) == 0:
+        raise RuntimeError(
+            "No epoch_*.pt checkpoints were found in "
+            f"{CHECKPOINT_DIR}"
+        )
+
+    print(
+        f"Device          : {DEVICE}"
+    )
+
+    print(
+        f"Checkpoint count: {len(checkpoints)}"
+    )
+
+    print(
+        f"First/last epoch: "
+        f"{checkpoints[0][0]} / "
+        f"{checkpoints[-1][0]}"
+    )
+
+    print(
+        f"Save directory  : {SAVE_DIR}"
+    )
+
+
+    # -----------------------------------------------------------------
+    # Load DWI data
+    # -----------------------------------------------------------------
+
+    noisy_hwdc, affine = load_nifti(
+        str(NOISY_PATH)
+    )
+
+    input_hwdc, input_affine = load_nifti(
+        str(INPUT_PATH)
+    )
+
+    mask_data, mask_affine = load_nifti(
+        str(MASK_PATH)
+    )
+
+    noisy_hwdc = np.asarray(
+        noisy_hwdc,
+        dtype=np.float32,
+    )
+
+    input_hwdc = np.asarray(
+        input_hwdc,
+        dtype=np.float32,
+    )
+
+    if noisy_hwdc.ndim != 4:
+        raise ValueError(
+            f"Noisy data must be 4D: "
+            f"{noisy_hwdc.shape}"
+        )
+
+    if input_hwdc.shape != noisy_hwdc.shape:
+        raise ValueError(
+            "Network input and noisy data have "
+            "different shapes."
+        )
+
+    if not np.allclose(
+        input_affine,
+        affine,
+        rtol=0.0,
+        atol=1e-4,
+    ):
+        raise ValueError(
+            "Network input and noisy data "
+            "use different voxel grids."
+        )
+
+    input_depth = int(
+        noisy_hwdc.shape[-1]
+    )
+
+    print(
+        f"Input depth      : {input_depth}"
+    )
+
+
+    # -----------------------------------------------------------------
+    # Brain mask
+    # -----------------------------------------------------------------
 
     mask_bool = prepare_mask_for_image(
         mask_data=mask_data,
@@ -412,55 +783,267 @@ def main():
         target_affine=affine,
     )
 
-    # [X,Y,Z,C] -> [C,X,Y,Z]
-    noisy = noisy_hwdc.transpose(3, 0, 1, 2)
-    groups = resolve_volume_groups(INPUT_DEPTH)
-    repeated_reference = build_repeated_noisy_mean_reference(noisy, groups)
-
-    masked_values = noisy[:, mask_bool]
-    noisy_min = float(np.nanmin(masked_values))
-    noisy_max = float(np.nanmax(masked_values))
-    print("Masked noisy range : [%0.6f, %0.6f]" % (noisy_min, noisy_max))
-    if noisy_min < -0.05 or noisy_max > float(DATA_RANGE) + 0.05:
-        print(
-            "[Warning] DATA_RANGE=%g may not match the actual intensity "
-            "range." % DATA_RANGE
-        )
-
-    print("\nCalculating noisy-volume versus noisy-shell-mean SSIM...")
-    channel_scores = noisy_vs_shell_mean_channel_ssim(
-        repeated_reference,
-        noisy,
-        mask_bool,
-        DATA_RANGE,
+    bbox = masked_bbox(
+        mask_bool
     )
 
-    (
-        overall,
-        labels,
-        counts,
-        means,
-        mins,
-        maxs,
-        stds,
-    ) = save_baseline_results(channel_scores, groups, SAVE_DIR)
 
-    print("\n================ SSIM-DA baseline validation ================")
-    print("Overall noisy SSIM-DA: %0.9f" % overall)
-    
-    for label, count, mean_v, min_v, max_v, std_v in zip(
-        labels, counts, means, mins, maxs, stds
-    ):
-        print(
-            "%8s  n=%3d  SSIM-DA mean=%0.9f  min=%0.9f  "
-            "max=%0.9f  std=%0.9f"
-            % (label, count, mean_v, min_v, max_v, std_v)
+    # -----------------------------------------------------------------
+    # Rearrange:
+    #
+    # [H,W,D,C] -> [C,H,W,D]
+    # -----------------------------------------------------------------
+
+    noisy = noisy_hwdc.transpose(
+        3, 0, 1, 2
+    )
+
+    net_input_np = input_hwdc.transpose(
+        3, 0, 1, 2
+    )[None]
+
+    net_input = torch.from_numpy(
+        net_input_np
+    ).to(
+        DEVICE,
+        dtype=DTYPE,
+    )
+
+
+    # -----------------------------------------------------------------
+    # b-value groups
+    # -----------------------------------------------------------------
+
+    bvalues = load_bvalues(
+        BVAL_PATH,
+        input_depth,
+    )
+
+    shell_labels, shell_indices = (
+        make_bvalue_groups(
+            bvalues,
+            b0_threshold=B0_THRESHOLD,
+            round_to=BVALUE_ROUND_TO,
         )
-    
-    print("\nSaved SSIM-DA scores : %s" % (SAVE_DIR / "baseline_channel_ssim.npy"))
-    print("Saved SSIM-DA summary: %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.npz"))
-    print("Saved SSIM-DA report : %s" % (SAVE_DIR / "baseline_noisy_vs_shell_mean.txt"))
+    )
+
+    print(
+        "\nSSIM-DA shell groups:"
+    )
+
+    for label, indices in zip(
+        shell_labels,
+        shell_indices,
+    ):
+
+        print(
+            f"  b={label:g}: "
+            f"{len(indices)} volumes, "
+            f"indices={indices.tolist()}"
+        )
+
+
+    # -----------------------------------------------------------------
+    # Noisy direction-averaged reference
+    # -----------------------------------------------------------------
+
+    noisy_masked = (
+        noisy * mask_bool[None]
+    )
+
+    noisy_da = build_shell_mean_multichannel(
+        noisy_masked,
+        shell_indices,
+    )
+
+    print(
+        "\nNoisy DA shape:",
+        noisy_da.shape,
+    )
+
+
+    # -----------------------------------------------------------------
+    # Build network
+    # -----------------------------------------------------------------
+
+    net = get_net(
+        input_depth,
+        "skip",
+        PAD,
+        skip_n33d=SKIP_N33D,
+        skip_n33u=SKIP_N33U,
+        skip_n11=SKIP_N11,
+        num_scales=NUM_SCALES,
+        upsample_mode=UPSAMPLE_MODE,
+        n_channels=input_depth,
+    ).to(
+        DEVICE,
+        dtype=DTYPE,
+    )
+
+    # Match original inference behavior.
+    net.train()
+
+
+    # -----------------------------------------------------------------
+    # Calculate SSIM-DA for every checkpoint
+    # -----------------------------------------------------------------
+
+    epochs = []
+    ssim_da_values = []
+
+    print(
+        "\n================ SSIM-DA calculation ================"
+    )
+
+    for number, (
+        epoch,
+        checkpoint_path,
+    ) in enumerate(
+        checkpoints,
+        start=1,
+    ):
+
+        # Load checkpoint.
+        state_dict = load_state_dict_robust(
+            checkpoint_path,
+            DEVICE,
+        )
+
+        net.load_state_dict(
+            state_dict,
+            strict=True,
+        )
+
+        net.train()
+
+        # Network reconstruction.
+        with torch.inference_mode():
+            output = net(
+                net_input
+            )
+
+        output_np = (
+            output[0]
+            .detach()
+            .cpu()
+            .numpy()
+            .astype(
+                np.float32,
+                copy=False,
+            )
+        )
+
+        # Brain mask.
+        output_masked = (
+            output_np
+            * mask_bool[None]
+        )
+
+        # -------------------------------------------------------------
+        # Reconstructed direction-averaged images
+        # -------------------------------------------------------------
+        reconstructed_da = (
+            build_shell_mean_multichannel(
+                output_masked,
+                shell_indices,
+            )
+        )
+
+        # -------------------------------------------------------------
+        # SSIM-DA:
+        #
+        # reconstructed DA
+        #       vs
+        # noisy DA
+        # -------------------------------------------------------------
+        ssim_da = calculate_ssim_da(
+            noisy_da,
+            reconstructed_da,
+            mask_bool,
+            bbox,
+            DATA_RANGE,
+        )
+
+        epochs.append(
+            epoch
+        )
+
+        ssim_da_values.append(
+            ssim_da
+        )
+
+        print(
+            f"[{number:04d}/"
+            f"{len(checkpoints):04d}] "
+            f"epoch={epoch:6d}  "
+            f"SSIM-DA={ssim_da:.6f}"
+        )
+
+        # Save intermediate results.
+        if (
+            number
+            % SAVE_EVERY_N_CHECKPOINTS
+            == 0
+        ):
+            save_results(
+                epochs,
+                ssim_da_values,
+                SAVE_DIR,
+            )
+
+        del (
+            state_dict,
+            output,
+            output_np,
+            output_masked,
+            reconstructed_da,
+        )
+
+        if (
+            DEVICE.type == "cuda"
+            and number % 50 == 0
+        ):
+            torch.cuda.empty_cache()
+
+
+    # -----------------------------------------------------------------
+    # Final save
+    # -----------------------------------------------------------------
+
+    save_results(
+        epochs,
+        ssim_da_values,
+        SAVE_DIR,
+    )
+
+    np.save(
+        SAVE_DIR
+        / "ssim_da_channel_bvalues.npy",
+        shell_labels,
+    )
+
+
+    print(
+        "\n================ SSIM-DA completed ================"
+    )
+
+    print(
+        "Saved iterations : "
+        f"{SAVE_DIR / 'epochs.npy'}"
+    )
+
+    print(
+        "Saved SSIM-DA    : "
+        f"{SAVE_DIR / 'ssim_da.npy'}"
+    )
+
+    print(
+        "Saved b-values   : "
+        f"{SAVE_DIR / 'ssim_da_channel_bvalues.npy'}"
+    )
 
 
 if __name__ == "__main__":
     main()
+
