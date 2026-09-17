@@ -1,0 +1,19 @@
+# Tested Python version: 3.8
+# For a CUDA 11.7 GPU environment, use environment.yml (recommended).
+# Installing this file with pip may install the CPU build of PyTorch.
+
+numpy==1.24.3
+scipy==1.10.1
+matplotlib==3.7.2
+Pillow==9.4.0
+
+# Diffusion MRI and NIfTI I/O
+dipy==1.7.0
+nibabel==5.1.0
+
+# Image-quality metrics
+scikit-image>=0.19,<0.22
+
+# Deep Image Prior implementation
+torch==2.0.0
+torchvision==0.15.0
