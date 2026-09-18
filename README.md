@@ -140,11 +140,11 @@ Rician-Moment-DIP/
 └── environment.yml
 ```
 
-## Reproducibility and data privacy
+## Data privacy and reproducibility
 
-- Do not commit raw participant data, derived NIfTI images, checkpoints, or experiment outputs.
-- Add `data/`, `outputs/`, `*.nii.gz`, `*.pt`, and Python cache directories to `.gitignore` before running new experiments.
-- The supplied script defaults are experiment-specific examples. They must be adapted to the local dataset before use.
+Raw in-vivo data, intermediate NIfTI files, trained checkpoints, and experiment outputs are not included in this repository. Please use de-identified data and avoid uploading participant data to a public repository.
+
+The default paths and parameter settings in the scripts are provided as examples based on our experiments. They should be adjusted to match the local dataset and computing environment before reproduction.
 
 ## Citation
 
