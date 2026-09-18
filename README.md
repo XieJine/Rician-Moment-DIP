@@ -35,6 +35,13 @@ Run all commands from the repository root:
 ```bash
 cd Rician-Moment-DIP
 ```
+## Implementation and optimization
+
+The two proposed methods were implemented in PyTorch and optimized independently for each DWI acquisition. Experiments were conducted on a server equipped with an Intel Xeon E5-2680 CPU and an NVIDIA GeForce GTX 1080 Ti GPU.
+
+A fixed Gaussian network input was sampled from a standard normal distribution with the same spatial size as the noisy DWI data. The Adam optimizer was used with an initial learning rate of `0.01`, decayed by a factor of `0.9` every `2000` iterations. Each DIP-based method was optimized for `50,000` iterations, and model checkpoints were saved every `40` iterations.
+
+Before running an experiment, update the data paths, crop range, number of DWI volumes, network-input path, noise level or noise map, GPU index, and output directory in the selected script.
 
 ## Simulated data
 
@@ -93,16 +100,15 @@ python DIP_M1_W/make_result_simulation_uniform.py
 
 ### Simulated data
 
-For simulated data, a clean reference is available. Use PSNR and loss curves to select the checkpoint:
+For simulated data, the Rician noise level \(\sigma\) is set to its ground-truth value. A noise-free reference DWI is available; therefore, the checkpoint with the highest peak signal-to-noise ratio (PSNR) is selected as the final reconstruction.
 
 ```bash
 python select_model/plot_simulation_training_curve.py
 python select_model/select_model_simulation.py
-```
 
 ### In-vivo data
 
-For in-vivo data, `select_model/compute_in_vivo_SSIM-DA.py` calculates offline SSIM-DA values across saved checkpoints. `select_model/plot_in_vivo_SSIMM_AD.py` plots these curves and identifies candidate checkpoints.
+For in-vivo data, `select_model/compute_in_vivo_SSIM-DA.py` calculates offline SSIM-DA values across saved checkpoints. `select_model/plot_in_vivo_SSIM_DA.py` plots these curves and identifies candidate checkpoints.
 
 SSIM-DA compares direction-averaged reconstructed and noisy DWIs within each b-value shell. Update `CHECKPOINT_DIR`, `SAVE_DIR`, `NOISY_PATH`, `INPUT_PATH`, `MASK_PATH`, and `BVAL_PATH` before running either script.
 
