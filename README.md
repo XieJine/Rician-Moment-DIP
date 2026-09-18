@@ -6,8 +6,8 @@ Rician-Moment-DIP is an image-specific, unsupervised diffusion MRI (dMRI) denois
 
 The repository provides two Rician noise-aware, variance-weighted loss functions within the DIP framework:
 
-- **DIP-M1-W** (`DIP_M1_W/`): a first-moment Rician loss that uses the conditional expectation of magnitude data to correct Rician-induced signal bias. The residual is adaptively weighted using the signal-dependent Rician noise variance.
-- **DIP-M2-W** (`DIP_M2_W/`): a second-moment Rician loss based on \(\mathbb{E}[M^2] = S^2 + 2\sigma^2\), which performs bias correction in the squared-signal domain and applies second-moment variance weighting.
+- **DIP-M1-W1** (`DIP_M1_W/`): a first-moment Rician loss that uses the conditional expectation of magnitude data to correct Rician-induced signal bias. The residual is adaptively weighted using the signal-dependent Rician noise variance.
+- **DIP-M2-W2** (`DIP_M2_W/`): a second-moment Rician loss based on \(\mathbb{E}[M^2] = S^2 + 2\sigma^2\), which performs bias correction in the squared-signal domain and applies second-moment variance weighting.
 
 Both methods perform image-specific, unsupervised optimization for each DWI acquisition. They require neither clean reference images nor pretrained denoising models, and they do not modify the underlying DIP network architecture.
 
