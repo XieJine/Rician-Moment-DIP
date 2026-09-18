@@ -114,7 +114,7 @@ SSIM-DA compares direction-averaged reconstructed and noisy DWIs within each b-v
 
 ## Important configuration checks
 
-The scripts are deliberately explicit rather than command-line driven. Before every run, check the following settings in the selected script:
+The scripts use parameters defined directly in the source code rather than command-line arguments. Before running a script, update and verify the following settings:
 
 - Input DWI, reference DWI, mask, fixed DIP input, noise-map, and output paths.
 - GPU index in `CUDA_VISIBLE_DEVICES`.
