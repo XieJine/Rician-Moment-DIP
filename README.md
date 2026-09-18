@@ -56,7 +56,7 @@ The supplied simulation scripts assume normalized image intensities. Update the 
 
 ## In-vivo data preparation
 
-Raw in-vivo data are not included. Use de-identified data only.
+Raw in-vivo dMRI data are not included in this repository to protect participant privacy. Please use de-identified data when reproducing the in-vivo experiments.
 
 The default preprocessing workflow is:
 
