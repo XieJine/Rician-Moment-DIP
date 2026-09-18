@@ -78,13 +78,13 @@ Before execution, edit the paths and crop/background-patch indices at the top of
 
 Each training script saves model checkpoints and intermediate metrics under `outputs/`. Each corresponding `make_result_*.py` script loads one selected checkpoint and exports a denoised NIfTI volume.
 
-| Experiment | DIP-M1-W | DIP-M2-W |
+| Experiment | DIP-M1-W1 | DIP-M2-W2 |
 | --- | --- | --- |
 | Simulation: uniform Rician noise | `train_simulation_uniform.py` → `make_result_simulation_uniform.py` | `train_simulation_uniform.py` → `make_result_simulation_uniform.py` |
 | Simulation: spatially varying Rician noise | `train_simulation_spatial.py` → `make_result_simulation_spatial.py` | `train_simulation_spatial.py` → `make_result_simulation_spatial.py` |
 | In-vivo DWI | `train_in_vivo.py` → `make_result_in_vivo.py` | `train_in_vivo.py` → `make_result_in_vivo.py` |
 
-For example, to train DIP-M1-W on the uniform-noise simulation:
+For example, to train DIP-M1-W1 on the uniform-noise simulation:
 
 ```bash
 python DIP_M1_W/train_simulation_uniform.py
@@ -105,7 +105,7 @@ For simulated data, the Rician noise level \(\sigma\) is set to its ground-truth
 ```bash
 python select_model/plot_simulation_training_curve.py
 python select_model/select_model_simulation.py
-
+```
 ### In-vivo data
 
 For in-vivo data, `select_model/compute_in_vivo_SSIM-DA.py` calculates offline SSIM-DA values across saved checkpoints. `select_model/plot_in_vivo_SSIM_DA.py` plots these curves and identifies candidate checkpoints.
