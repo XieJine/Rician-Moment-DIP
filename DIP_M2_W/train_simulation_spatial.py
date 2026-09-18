@@ -191,7 +191,7 @@ def closure():   #######！！！！！#####
     rmse_out_list.append(RMSE_out)   
     total_loss_list.append(total_loss_)   #Record the loss value.  
 
-   path_main_1 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/'
+    path_main_1 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/psnr_rmse/level_3_5/'
     if not os.path.exists(path_main_1):
         os.makedirs(path_main_1)
     path_main_2 = 'outputs/DIP_M2_W/Spatial_transformation_noisy_truenoise/iterations/level_3_5/'
