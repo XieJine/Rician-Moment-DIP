@@ -2,14 +2,14 @@
 
 ## Unsupervised Denoising of Diffusion-Weighted Images with Bias- and Variance-Corrected Noise Modeling
 
-Rician-Moment-DIP is an unsupervised diffusion MRI (dMRI) denoising framework based on Deep Image Prior (DIP). It is designed for magnitude diffusion-weighted images (DWIs), where Rician noise produces a signal-dependent noise floor and spatially varying uncertainty.
+Rician-Moment-DIP is an image-specific, unsupervised diffusion MRI (dMRI) denoising framework based on Deep Image Prior (DIP). It is designed for magnitude diffusion-weighted images (DWIs), where Rician noise can introduce signal bias and heteroscedastic noise variance, particularly at low signal-to-noise ratios. The framework incorporates two Rician noise-aware loss functions: a first-moment loss for bias correction and a second-moment loss based on squared-signal statistics. Both objectives further use adaptive variance weighting to account for the signal-dependent nature of Rician noise, without modifying the underlying DIP network architecture.
 
-The repository provides two Rician-aware, variance-weighted DIP objectives:
+The repository provides two Rician noise-aware, variance-weighted loss functions within the DIP framework:
 
-- **DIP-M1-W** (`DIP_M1_W/`): first-moment Rician modeling. The loss uses the Rician expectation to correct magnitude bias and weights residuals using the corresponding signal-dependent variance.
-- **DIP-M2-W** (`DIP_M2_W/`): second-moment Rician modeling. The loss uses the identity \(\mathbb{E}[M^2] = S^2 + 2\sigma^2\) and second-moment variance weighting.
+- **DIP-M1-W** (`DIP_M1_W/`): a first-moment Rician loss that uses the conditional expectation of magnitude data to correct Rician-induced signal bias. The residual is adaptively weighted using the signal-dependent Rician noise variance.
+- **DIP-M2-W** (`DIP_M2_W/`): a second-moment Rician loss based on \(\mathbb{E}[M^2] = S^2 + 2\sigma^2\), which performs bias correction in the squared-signal domain and applies second-moment variance weighting.
 
-Both methods optimize a 3D skip-network for each individual DWI acquisition; no clean training targets or pretrained denoiser are required.
+Both methods perform image-specific, unsupervised optimization for each DWI acquisition. They require neither clean reference images nor pretrained denoising models, and they do not modify the underlying DIP network architecture.
 
 ## Requirements
 
